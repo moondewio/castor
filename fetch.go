@@ -7,13 +7,16 @@ import (
 	"github.com/asmcos/requests"
 )
 
-func fetchPRs() ([]PR, error) {
+func fetchPRs(token string) ([]PR, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
 		return []PR{}, err
 	}
 
 	r := requests.Requests()
+	if token != "" {
+		r.Header.Set("Authorization", "token "+token)
+	}
 	res, err := r.Get(githubPRURL(owner, repo))
 
 	prs := []PR{}

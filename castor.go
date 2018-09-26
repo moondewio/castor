@@ -6,8 +6,8 @@ import (
 )
 
 // List lists all the PRs
-func List() error {
-	prs, err := fetchPRs()
+func List(token string) error {
+	prs, err := fetchPRs(token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
@@ -21,13 +21,13 @@ func List() error {
 
 // Review checksout the branch of a PR to review it, saving the status of the current
 // branch to allow coming back to it later and continue with the work in progress.
-func Review(n string) error {
+func Review(n string, token string) error {
 	prNum, err := strconv.Atoi(n)
 	if err != nil {
 		return ExitErrorF(1, "'%s' is not a number", n)
 	}
 
-	prs, err := fetchPRs()
+	prs, err := fetchPRs(token)
 	if err != nil {
 		return ExitErr(1, err)
 	}

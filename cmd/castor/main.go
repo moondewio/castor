@@ -1,13 +1,14 @@
 package main
 
 import (
-	// "fmt"
 	"os"
 	"strings"
 
 	"github.com/gillchristian/castor"
 	"github.com/urfave/cli"
 )
+
+var token string
 
 func main() {
 	app := cli.NewApp()
@@ -22,6 +23,7 @@ func main() {
 	}, "\n   ")
 
 	app.Commands = commands
+	app.Flags = flags
 
 	app.Run(os.Args)
 }
@@ -31,13 +33,21 @@ var commands = []cli.Command{
 		Name:      "prs",
 		Usage:     "List all PRs",
 		UsageText: "$ castor prs",
-		Action:    func(c *cli.Context) error { return castor.List() },
+		Action:    func(c *cli.Context) error { return castor.List(token) },
 	},
 	{
 		Name:      "review",
 		Usage:     "Checkout to a PR's branch to review it",
 		UsageText: "$ castor review 14",
 		Action:    review,
+	},
+}
+
+var flags = []cli.Flag{
+	cli.StringFlag{
+		Name:        "token",
+		Usage:       "GitHub API Token for accessing private repos",
+		Destination: &token,
 	},
 }
 
@@ -48,5 +58,5 @@ func review(c *cli.Context) error {
 		return castor.ExitErrorF(1, "Missing PR number")
 	}
 
-	return castor.Review(c.Args().First())
+	return castor.Review(c.Args().First(), c.String("token"))
 }
