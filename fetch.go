@@ -1,4 +1,4 @@
-package main
+package castor
 
 import (
 	"encoding/json"
@@ -7,7 +7,12 @@ import (
 	"net/http"
 )
 
-func fetchPRs(owner, repo string) ([]PR, error) {
+func fetchPRs() ([]PR, error) {
+	owner, repo, err := ownerAndRepo()
+	if err != nil {
+		return []PR{}, err
+	}
+
 	// GET /repos/:owner/:repo/pulls
 	res, err := http.Get(githubPRURL(owner, repo))
 

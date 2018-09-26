@@ -1,8 +1,11 @@
-package main
+package castor
 
 import (
 	"fmt"
 	"os/exec"
+	"strings"
+
+	"github.com/whilp/git-urls"
 )
 
 func switchToPR(pr PR) error {
@@ -44,4 +47,43 @@ func switchToPR(pr PR) error {
 	}
 
 	return nil
+}
+
+func isGitRepo() bool {
+	return exec.Command("git", "rev-parse").Run() == nil
+}
+
+func ownerAndRepo() (string, string, error) {
+	rawurl, err := remoteURL()
+	if err != nil {
+		return "", "", err
+	}
+
+	return ownerAndRepoFromRemote(rawurl)
+}
+
+func ownerAndRepoFromRemote(remote string) (string, string, error) {
+	url, err := giturls.Parse(remote)
+	if err != nil {
+		return "", "", err
+	}
+
+	parts := strings.Split(strings.Replace(url.Path, ".git", "", 1), "/")
+
+	// TODO: handle len != 2 case (could be many things)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("Cannot parse owner and repo from git remote origin")
+	}
+
+	return parts[0], parts[1], nil
+}
+
+func remoteURL() (string, error) {
+	cmd := exec.Command("git", "remote", "get-url", "origin")
+	output, err := cmd.Output()
+	if err != nil {
+		// TODO: handle error properly, maybe dir has not .git/
+		return "", err
+	}
+	return strings.Replace(string(output), "\n", "", 1), nil
 }

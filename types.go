@@ -1,46 +1,78 @@
-package main
+package castor
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
+
+// ExitError implements the cli.ExitError interface
+type ExitError struct {
+	error
+	code int
+}
+
+// ExitCode returns the error code
+func (e ExitError) ExitCode() int {
+	return e.code
+}
+
+// ExitErr returns an ExitError based on an error code an another error value.
+func ExitErr(code int, err error) ExitError {
+	switch v := err.(type) {
+	// TODO: should we ignore `code` in this case?
+	case ExitError:
+		return v
+	default:
+		return ExitError{err, code}
+	}
+}
+
+// ExitErrorF returns an ExitError based on an error code and a format specifier.
+func ExitErrorF(code int, format string, a ...interface{}) ExitError {
+	return ExitError{fmt.Errorf(format, a...), code}
+}
 
 // PR is the data of a PR provided by GitHub
 type PR struct {
-	ID                 int        `json:"id"`
-	NodeID             string     `json:"node_id"`
-	URL                string     `json:"url"`
-	HTMLURL            string     `json:"html_url"`
-	DiffURL            string     `json:"diff_url"`
-	PatchURL           string     `json:"patch_url"`
-	IssueURL           string     `json:"issue_url"`
-	CommitsURL         string     `json:"commits_url"`
-	ReviewCommentsURL  string     `json:"review_comments_url"`
-	ReviewCommentURL   string     `json:"review_comment_url"`
-	CommentsURL        string     `json:"comments_url"`
-	StatusesURL        string     `json:"statuses_url"`
-	Number             int        `json:"number"`
-	State              string     `json:"state"`
-	Title              string     `json:"title"`
-	Body               string     `json:"body"`
-	Locked             bool       `json:"locked"`
-	ActiveLockReason   string     `json:"active_lock_reason"`
-	Assignee           Assignee   `json:"assignee"`
-	Assignees          []Assignee `json:"assignees"`
-	Labels             []Label    `json:"labels"`
-	RequestedReviewers []User     `json:"requested_reviewers"`
-	Milestone          Milestone  `json:"milestone"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
-	ClosedAt           time.Time  `json:"closed_at"`
-	MergedAt           time.Time  `json:"merged_at"`
-	Head               Ref        `json:"head"`
-	Base               Ref        `json:"base"`
-	User               User       `json:"user"`
-	Links              Links      `json:"_links"`
+	ID                 int       `json:"id"`
+	NodeID             string    `json:"node_id"`
+	URL                string    `json:"url"`
+	HTMLURL            string    `json:"html_url"`
+	DiffURL            string    `json:"diff_url"`
+	PatchURL           string    `json:"patch_url"`
+	IssueURL           string    `json:"issue_url"`
+	CommitsURL         string    `json:"commits_url"`
+	ReviewCommentsURL  string    `json:"review_comments_url"`
+	ReviewCommentURL   string    `json:"review_comment_url"`
+	CommentsURL        string    `json:"comments_url"`
+	StatusesURL        string    `json:"statuses_url"`
+	Number             int       `json:"number"`
+	State              string    `json:"state"`
+	Title              string    `json:"title"`
+	Body               string    `json:"body"`
+	Locked             bool      `json:"locked"`
+	ActiveLockReason   string    `json:"active_lock_reason"`
+	Assignee           User      `json:"assignee"`
+	Assignees          []User    `json:"assignees"`
+	Labels             []Label   `json:"labels"`
+	RequestedReviewers []User    `json:"requested_reviewers"`
+	Milestone          Milestone `json:"milestone"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+	ClosedAt           time.Time `json:"closed_at"`
+	MergedAt           time.Time `json:"merged_at"`
+	Head               Ref       `json:"head"`
+	Base               Ref       `json:"base"`
+	User               User      `json:"user"`
+	Links              Links     `json:"_links"`
 }
 
+// Link contains the Href of a GitHub's API link
 type Link struct {
 	Href string `json:"href"`
 }
 
+// Links is a set of links included relevant to a GitHub's API response object
 type Links struct {
 	Self           Link `json:"self"`
 	HTML           Link `json:"html"`
@@ -52,6 +84,7 @@ type Links struct {
 	Statuses       Link `json:"statuses"`
 }
 
+// User contains the data of a user provided by GitHub's API
 type User struct {
 	Login             string `json:"login"`
 	ID                int    `json:"id"`
@@ -73,9 +106,7 @@ type User struct {
 	SiteAdmin         bool   `json:"site_admin"`
 }
 
-// Assignee is the GitHub's PR assignee
-type Assignee User
-
+// Label is the GitHub's issue label
 type Label struct {
 	ID          int    `json:"id"`
 	NodeID      string `json:"node_id"`
@@ -86,6 +117,7 @@ type Label struct {
 	Default     bool   `json:"default"`
 }
 
+// Milestone contains GitHub's milestone data
 type Milestone struct {
 	URL          string    `json:"url"`
 	HTMLURL      string    `json:"html_url"`
@@ -105,6 +137,7 @@ type Milestone struct {
 	DueOn        time.Time `json:"due_on"`
 }
 
+// Repo containes the data of a GitHub's repository
 type Repo struct {
 	ID               int         `json:"id"`
 	NodeID           string      `json:"node_id"`
@@ -187,6 +220,7 @@ type Repo struct {
 	NetworkCount     int  `json:"network_count"`
 }
 
+// Ref contains data of a GitHub's ref
 type Ref struct {
 	Label string `json:"label"`
 	Ref   string `json:"ref"`
