@@ -67,10 +67,17 @@ func viewPR(n string) {
 		log.Fatal(err)
 	}
 
-	err = switchToPR(prs[0])
-	if err != nil {
-		log.Fatal(err)
+	for _, pr := range prs {
+		if pr.Number == prNum {
+			err := switchToPR(pr)
+			if err != nil {
+				log.Fatal(err)
+			}
+			return
+		}
 	}
+
+	fmt.Printf("PR #%v not found", prNum)
 }
 
 func printPR(pr PR) {
