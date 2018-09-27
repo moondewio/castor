@@ -31,18 +31,17 @@ func Review(n string, token string) error {
 		return ExitErrorF(1, "'%s' is not a number", n)
 	}
 
-	prs, err := fetchPRs(token)
+	pr, err := fetchPR(prNum, token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	for _, pr := range prs {
-		if pr.Number == prNum {
-			return ExitErr(1, switchToPR(pr))
-		}
+	err = switchToPR(pr)
+	if err != nil {
+		return ExitErr(1, err)
 	}
 
-	return ExitErrorF(1, "PR #%v not found", prNum)
+	return nil
 }
 
 func printPRsTable(prs []PR) {
