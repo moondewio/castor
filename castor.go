@@ -2,7 +2,13 @@ package castor
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
+	"text/tabwriter"
+
+	"github.com/aybabtme/rgbterm"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 // List lists all the PRs
@@ -12,9 +18,7 @@ func List(token string) error {
 		return ExitErr(1, err)
 	}
 
-	for _, pr := range prs {
-		printPR(pr)
-	}
+	printPRsTable(prs)
 
 	return nil
 }
@@ -41,14 +45,61 @@ func Review(n string, token string) error {
 	return ExitErrorF(1, "PR #%v not found", prNum)
 }
 
-func printPR(pr PR) {
-	fmt.Println("Title: ", pr.Title)
-	fmt.Println("URL: ", pr.URL)
-	fmt.Println("Assignee: ", pr.Assignee.Login)
-	fmt.Println("User: ", pr.User.Login)
-	fmt.Println("Branch:", pr.Head.Ref)
-	fmt.Println("Base branch:", pr.Base.Ref)
-	fmt.Println("PR #", pr.Number)
-	fmt.Printf("Missing %v reviews\n", len(pr.RequestedReviewers))
-	fmt.Println("---")
+func printPRsTable(prs []PR) {
+	w := new(tabwriter.Writer)
+	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)
+	fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t REVIEWS\t LABELS")
+
+	for _, pr := range prs {
+		var reviews string
+		if len(pr.RequestedReviewers) > 0 {
+			reviews = fmt.Sprintf("Missing %v reviews", len(pr.RequestedReviewers))
+		}
+
+		fmt.Fprintf(
+			w,
+			" %v\t %s\t %s\t %s\t %s\t %s\n",
+			pr.Number,
+			truncate(pr.Title, 30),
+			pr.Head.Ref,
+			pr.User.Login,
+			reviews,
+			labels(pr.Labels),
+		)
+	}
+
+	w.Flush()
+}
+
+func truncate(str string, num int) string {
+	bnoden := str
+	if len(str) > num {
+		if num > 3 {
+			num -= 3
+		}
+		bnoden = str[0:num] + "..."
+	}
+	return bnoden
+}
+
+func hex2rgb(hex string) (uint8, uint8, uint8) {
+	c, err := colorful.Hex(hex)
+	if err != nil {
+		// TODO: use a better default
+		return 0, 0, 0
+	}
+
+	return c.RGB255()
+}
+
+func labels(ls []Label) string {
+	tags := make([]string, len(ls))
+
+	for i, l := range ls {
+		r, g, b := hex2rgb("#" + l.Color)
+
+		tags[i] = rgbterm.FgString(l.Name, r, g, b)
+	}
+
+	return strings.Join(tags, " ")
 }
