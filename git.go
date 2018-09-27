@@ -8,17 +8,24 @@ import (
 	"github.com/whilp/git-urls"
 )
 
+var castorWIP = "[CASTOR WIP]"
+
 func switchToPR(pr PR) error {
 	// TODO: improve logs (better feedback to the user)
-	fmt.Printf("Switching to branch `%s`\n", pr.Head.Ref)
-	fmt.Println("Saving work in progress ...")
-
-	err := exec.Command("git", "add", ".").Run()
+	err := setWipBranch()
 	if err != nil {
 		return err
 	}
 
-	err = exec.Command("git", "commit", "-m", "'girp wip'").Run()
+	fmt.Printf("Switching to branch `%s`\n", pr.Head.Ref)
+	fmt.Println("Saving work in progress ...")
+
+	err = exec.Command("git", "add", ".").Run()
+	if err != nil {
+		return err
+	}
+
+	err = exec.Command("git", "commit", "-m", castorWIP).Run()
 	if err != nil {
 		fmt.Println("Failed to commit staged files, rolling back...")
 		if rberr := exec.Command("git", "reset", ".").Run(); rberr != nil {
@@ -47,6 +54,32 @@ func switchToPR(pr PR) error {
 	}
 
 	return nil
+}
+
+// TODO: handle errors properly and display feedback
+func goBack() error {
+	branch, err := wipBranch()
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Going back to branch `%s`\n", branch)
+
+	err = exec.Command("git", "checkout", branch).Run()
+	if err != nil {
+		return err
+	}
+
+	msg, err := lastCommit()
+	if err != nil {
+		return err
+	}
+
+	if msg != castorWIP {
+		return nil
+	}
+
+	return exec.Command("git", "reset", "HEAD~").Run()
 }
 
 func isGitRepo() bool {
@@ -86,4 +119,15 @@ func remoteURL() (string, error) {
 		return "", err
 	}
 	return strings.Replace(string(output), "\n", "", 1), nil
+}
+
+func lastCommit() (string, error) {
+	cmd := exec.Command("git", "log", "--pretty=format:%s", "-n", "1")
+	output, err := cmd.Output()
+	if err != nil {
+		// TODO: handle error properly, maybe dir has not .git/
+		return "", err
+	}
+
+	return string(output), nil
 }

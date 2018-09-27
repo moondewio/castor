@@ -44,6 +44,17 @@ func Review(n string, token string) error {
 	return nil
 }
 
+// GoBack checkouts back to the last WIP brach
+func GoBack() error {
+	err := goBack()
+
+	if err != nil {
+		return ExitErr(1, err)
+	}
+
+	return nil
+}
+
 func printPRsTable(prs []PR) {
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)

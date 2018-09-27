@@ -41,6 +41,12 @@ var commands = []cli.Command{
 		UsageText: "$ castor review 14",
 		Action:    review,
 	},
+	{
+		Name:      "back",
+		Usage:     "Checkout to were you left off",
+		UsageText: "$ castor back",
+		Action:    func(c *cli.Context) error { return castor.GoBack() },
+	},
 }
 
 var flags = []cli.Flag{
