@@ -77,8 +77,6 @@ func setWipBranch() error {
 		}
 	}
 
-	fmt.Println("did not end")
-
 	branches := map[string]string{}
 
 	err = json.Unmarshal(b, &branches)
