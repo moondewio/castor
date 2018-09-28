@@ -6,10 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"os/user"
 	"path/filepath"
-	"strings"
 )
 
 // TODO: use repo directory instad of WD
@@ -29,7 +27,7 @@ func init() {
 }
 
 func wipBranch() (string, error) {
-	dir, err := os.Getwd()
+	dir, err := repoDir()
 	if err != nil {
 		return "", err
 	}
@@ -59,12 +57,12 @@ func wipBranch() (string, error) {
 
 // TODO: handle missing files properly
 func setWipBranch() error {
-	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	branch, err := currentBranch()
 	if err != nil {
 		return err
 	}
 
-	dir, err := os.Getwd()
+	dir, err := repoDir()
 	if err != nil {
 		return err
 	}
@@ -89,7 +87,7 @@ func setWipBranch() error {
 		return err
 	}
 
-	branches[dir] = strings.TrimSpace(string(out))
+	branches[dir] = branch
 
 	b, err = json.Marshal(branches)
 	if err != nil {

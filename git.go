@@ -2,13 +2,14 @@ package castor
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/whilp/git-urls"
 )
 
-var castorWIP = "[CASTOR WIP]"
+var castorWIPCommitMsg = "[CASTOR WIP]"
 
 func switchToPR(pr PR) error {
 	// TODO: improve logs (better feedback to the user)
@@ -17,7 +18,6 @@ func switchToPR(pr PR) error {
 		return err
 	}
 
-	fmt.Printf("Switching to branch `%s`\n", pr.Head.Ref)
 	fmt.Println("Saving work in progress ...")
 
 	err = exec.Command("git", "add", ".").Run()
@@ -25,7 +25,7 @@ func switchToPR(pr PR) error {
 		return err
 	}
 
-	err = exec.Command("git", "commit", "-m", castorWIP).Run()
+	err = exec.Command("git", "commit", "-m", castorWIPCommitMsg).Run()
 	if err != nil {
 		fmt.Println("Failed to commit staged files, rolling back...")
 		if rberr := exec.Command("git", "reset", ".").Run(); rberr != nil {
@@ -34,6 +34,8 @@ func switchToPR(pr PR) error {
 		}
 		return err
 	}
+
+	fmt.Printf("Switching to branch `%s`\n", pr.Head.Ref)
 
 	err = exec.Command("git", "checkout", pr.Head.Ref).Run()
 	if err != nil {
@@ -51,6 +53,7 @@ func switchToPR(pr PR) error {
 		fmt.Printf("Switched to `%s` but failed pull lates changes...\n", pr.Head.Ref)
 	} else {
 		fmt.Println("Success!!!")
+		fmt.Printf("Switched to `%s`...\n", pr.Head.Ref)
 	}
 
 	return nil
@@ -58,14 +61,24 @@ func switchToPR(pr PR) error {
 
 // TODO: handle errors properly and display feedback
 func goBack() error {
-	branch, err := wipBranch()
+	wip, err := wipBranch()
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Going back to branch `%s`\n", branch)
+	cur, err := currentBranch()
+	if err != nil {
+		return err
+	}
 
-	err = exec.Command("git", "checkout", branch).Run()
+	if cur == wip {
+		fmt.Printf("Already in branch `%s`\n", wip)
+		return nil
+	}
+
+	fmt.Printf("Checkingout back to branch `%s`\n", wip)
+
+	err = exec.Command("git", "checkout", wip).Run()
 	if err != nil {
 		return err
 	}
@@ -75,15 +88,56 @@ func goBack() error {
 		return err
 	}
 
-	if msg != castorWIP {
+	if msg != castorWIPCommitMsg {
 		return nil
 	}
+
+	fmt.Println("Recovering your Work In Progress")
 
 	return exec.Command("git", "reset", "HEAD~").Run()
 }
 
-func isGitRepo() bool {
+func currentBranch() (string, error) {
+	out, err := exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").Output()
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(string(out)), nil
+}
+
+func isRepo() bool {
 	return exec.Command("git", "rev-parse").Run() == nil
+}
+
+// $ pwd
+// /home/user/repo
+//
+// $ git rev-parse --git-dir
+// .git
+
+// $ pwd
+// /home/user/repo/internal-dir
+//
+// $ git rev-parse --git-dir
+// /home/user/repo/.git
+func repoDir() (string, error) {
+	out, err := exec.Command("git", "rev-parse", "--git-dir").Output()
+	if err != nil {
+		return "", err
+	}
+
+	if dir := strings.TrimSpace(string(out)); dir != ".git" {
+		// TODO: should only replace /.git$/
+		return strings.Replace(dir, ".git", "", 1), nil
+	}
+
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	return dir, nil
 }
 
 func ownerAndRepo() (string, string, error) {
