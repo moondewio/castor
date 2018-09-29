@@ -1,8 +1,22 @@
 <h1 align="center">castor :hamster:</h1>
 
-> **WIP** :tm:
+<p align="center">Review GitHub PRs and go back where you left of</p>
 
-```bash
+> **This is still WIP** :tm:
+>
+> **All feedback is welcome**
+
+[![asciicast](https://asciinema.org/a/203682.png)](https://asciinema.org/a/203682)
+
+## Install
+
+```
+$ go get github.com/gillchristian/castor/cmd/castor
+```
+
+## Use
+
+```
 $ castor
 NAME:
    castor - Review PRs in the terminal
@@ -20,6 +34,7 @@ AUTHOR:
 COMMANDS:
      prs      List all PRs
      review   Checkout to a PR's branch to review it
+     back     Checkout to were you left off
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
