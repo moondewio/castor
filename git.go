@@ -11,15 +11,9 @@ import (
 var castorWIPMsg = "[CASTOR WIP]"
 
 func switchToPR(pr PR) error {
-	// TODO: improve logs (better feedback to the user)
-	err := setWipBranch()
-	if err != nil {
-		return err
-	}
-
 	fmt.Printf("Saving work in progress ...\n\n")
 
-	err = runAndPipe("git", "stash", "save", "-u", castorWIPMsg)
+	err := runAndPipe("git", "stash", "save", "-u", castorWIPMsg)
 	if err != nil {
 		fmt.Printf("\nCouldn't stash files...\n\n")
 		return err
