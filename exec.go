@@ -9,7 +9,7 @@ import (
 	"github.com/fatih/color"
 )
 
-func runAndPipe(command string, args ...string) error {
+func runWithPipe(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

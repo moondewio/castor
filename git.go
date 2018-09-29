@@ -2,7 +2,6 @@ package castor
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/whilp/git-urls"
@@ -11,9 +10,13 @@ import (
 var castorWIPMsg = "[CASTOR WIP]"
 
 func switchToPR(pr PR) error {
-	fmt.Printf("Saving work in progress ...\n\n")
+	if !isRepo() {
+		return fmt.Errorf("Not a git repository")
+	}
 
-	err := runAndPipe("git", "stash", "save", "-u", castorWIPMsg)
+	fmt.Printf("Saving Work In Progress\n\n")
+
+	err := runWithPipe("git", "stash", "save", "-u", castorWIPMsg)
 	if err != nil {
 		fmt.Printf("\nCouldn't stash files...\n\n")
 		return err
@@ -21,20 +24,26 @@ func switchToPR(pr PR) error {
 
 	fmt.Printf("\nSwitching to branch `%s`\n\n", pr.Head.Ref)
 
-	// TODO: git fetch if pull fails (unless it's network?)
-	err = runAndPipe("git", "checkout", pr.Head.Ref)
+	err = runWithPipe("git", "checkout", pr.Head.Ref)
 	if err != nil {
-		fmt.Printf("\nFailed to checkout to branch `%s`, applying WIP changes\n\n", pr.Head.Ref)
-		if rberr := runAndPipe("git", "stash", "pop"); rberr != nil {
-			fmt.Printf("\nFailed to apply changes...\n\n")
-			return rberr
+		err = runWithPipe("git", "fetch")
+		if err != nil {
+			fmt.Printf("\nFailed to checkout to branch `%s`, applying Work In Progress back\n\n", pr.Head.Ref)
+			if rberr := runWithPipe("git", "stash", "pop"); rberr != nil {
+				fmt.Printf("\nFailed to apply changes...\n\n")
+				return rberr
+			}
+			return err
 		}
-		return err
+		err = runWithPipe("git", "checkout", pr.Head.Ref)
+		if err != nil {
+			return err
+		}
 	}
 
 	fmt.Println()
 
-	err = runAndPipe("git", "pull", "origin", pr.Head.Ref)
+	err = runWithPipe("git", "pull", "origin", pr.Head.Ref)
 	if err != nil {
 		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", pr.Head.Ref)
 	} else {
@@ -45,10 +54,13 @@ func switchToPR(pr PR) error {
 }
 
 func goBack() error {
+	if !isRepo() {
+		return fmt.Errorf("Not a git repository")
+	}
+
 	wip, ok := stashWIP()
 	if !ok {
-		// TODO: improve this message
-		return fmt.Errorf("No branch with Work In Progress.")
+		return fmt.Errorf("Castor didn't save any Work In Progress in this repository")
 	}
 
 	cur, err := currentBranch()
@@ -59,20 +71,15 @@ func goBack() error {
 	if cur != wip.branch {
 		fmt.Printf("Checkingout back to branch `%s`\n\n", wip.branch)
 
-		err = runAndPipe("git", "checkout", wip.branch)
+		err = runWithPipe("git", "checkout", wip.branch)
 		if err != nil {
 			return err
 		}
 	}
 
-	if wip.id != "" {
+	fmt.Printf("Recovering your Work In Progress\n\n")
 
-		fmt.Printf("Recovering your Work In Progress\n\n")
-
-		return runAndPipe("git", "stash", "pop", wip.id)
-	}
-
-	return nil
+	return runWithPipe("git", "stash", "pop", wip.id)
 }
 
 func currentBranch() (string, error) {
@@ -81,36 +88,6 @@ func currentBranch() (string, error) {
 
 func isRepo() bool {
 	return run("git", "rev-parse") == nil
-}
-
-// $ pwd
-// /home/user/repo
-//
-// $ git rev-parse --git-dir
-// .git
-
-// $ pwd
-// /home/user/repo/internal-dir
-//
-// $ git rev-parse --git-dir
-// /home/user/repo/.git
-func repoDir() (string, error) {
-	out, err := output("git", "rev-parse", "--git-dir")
-	if err != nil {
-		return "", err
-	}
-
-	if dir := strings.TrimSpace(out); dir != ".git" {
-		// TODO: should only replace /.git$/
-		return strings.Replace(dir, ".git", "", 1), nil
-	}
-
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-
-	return dir, nil
 }
 
 func ownerAndRepo() (string, string, error) {

@@ -42,6 +42,9 @@ var commands = []cli.Command{
 		Action:    review,
 	},
 	{
+		// TODO: handle case of multiple WIPs
+		// $ castor back [branch]
+		// $ castor back # prompts branches when multiple WIPs
 		Name:      "back",
 		Usage:     "Checkout to were you left off",
 		UsageText: "$ castor back",
