@@ -56,6 +56,9 @@ func GoBack() error {
 }
 
 func printPRsTable(prs []PR) {
+	if len(prs) == 0 {
+		return
+	}
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)
 	fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t REVIEWS\t LABELS")

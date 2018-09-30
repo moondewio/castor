@@ -67,6 +67,6 @@ func githubPRsURL(owner, repo string) string {
 }
 
 func githubPRURL(id int, owner, repo string) string {
-	// GET /repos/:owner/:repo/pulls
+	// GET /repos/:owner/:repo/pulls/:id
 	return fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%v", owner, repo, id)
 }
