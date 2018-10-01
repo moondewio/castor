@@ -34,12 +34,14 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "castor"
-	app.Version = "0.0.1"
+	app.Version = "1.0.0"
 	app.Author = "Christian Gill (gillchristiang@gmail.com)"
 	app.Usage = "Review PRs in the terminal"
 	app.UsageText = strings.Join([]string{
 		"$ castor prs",
 		"$ castor review 14",
+		"$ castor back",
+		"$ castor token [token]",
 	}, "\n   ")
 
 	app.Commands = commands
@@ -71,14 +73,14 @@ var commands = []cli.Command{
 		Action:    func(c *cli.Context) error { return castor.GoBack() },
 	},
 	{
-		Name:  "set-token",
+		Name:  "token",
 		Usage: "Save the GitHub API token to use with other commands",
 		UsageText: strings.Join([]string{
-			"$ castor set-token [token]",
-			"$ castor --token [token] set-token",
+			"$ castor token [token]",
+			"$ castor --token [token] token",
 		}, "\n   "),
 
-		Action: setTokenAction,
+		Action: tokenAction,
 	},
 }
 
@@ -100,7 +102,7 @@ func reviewAction(c *cli.Context) error {
 	return castor.Review(c.Args().First(), loadConf().Token)
 }
 
-func setTokenAction(c *cli.Context) error {
+func tokenAction(c *cli.Context) error {
 	if token != "" {
 		return saveConf(Conf{Token: token})
 	}

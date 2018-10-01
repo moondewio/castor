@@ -17,13 +17,14 @@ $ go get github.com/gillchristian/castor/cmd/castor
 ## Use
 
 ```
-$ castor
 NAME:
    castor - Review PRs in the terminal
 
 USAGE:
    $ castor prs
    $ castor review 14
+   $ castor back
+   $ castor token [token]
 
 VERSION:
    0.0.1
@@ -35,6 +36,7 @@ COMMANDS:
      prs      List all PRs
      review   Checkout to a PR's branch to review it
      back     Checkout to were you left off
+     token    Save the GitHub API token to use with other commands
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
