@@ -1,7 +1,6 @@
 package castor
 
 import (
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -11,26 +10,13 @@ import (
 
 func runWithPipe(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	stderr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-	c := color.New(color.FgYellow)
-	c.Printf("$ %s %s\n\n", command, strings.Join(args, " "))
-	err = cmd.Start()
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(os.Stdout, stdout)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(os.Stderr, stderr)
-	return err
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+
+	color.New(color.FgYellow).Printf("$ %s %s\n\n", command, strings.Join(args, " "))
+
+	return cmd.Run()
 }
 
 func run(command string, args ...string) error {

@@ -9,42 +9,43 @@ import (
 
 var castorWIPMsg = "[CASTOR WIP]"
 
+func checkoutBranch(branch string) error {
+	fmt.Printf("\nSwitching to branch `%s`\n\n", branch)
+	if err := runWithPipe("git", "checkout", branch); err != nil {
+		fmt.Println()
+		if err := runWithPipe("git", "fetch"); err != nil {
+			return err
+		}
+		fmt.Println()
+		if err := runWithPipe("git", "checkout", branch); err != nil {
+			return err
+		}
+	}
+	fmt.Println()
+	return nil
+}
+
 func switchToPR(pr PR) error {
 	if !isRepo() {
 		return fmt.Errorf("Not a git repository")
 	}
 
 	fmt.Printf("Saving Work In Progress\n\n")
-
-	err := runWithPipe("git", "stash", "save", "-u", castorWIPMsg)
-	if err != nil {
+	if err := runWithPipe("git", "stash", "save", "-u", castorWIPMsg); err != nil {
 		fmt.Printf("\nCouldn't stash files...\n\n")
 		return err
 	}
 
-	fmt.Printf("\nSwitching to branch `%s`\n\n", pr.Head.Ref)
-
-	err = runWithPipe("git", "checkout", pr.Head.Ref)
-	if err != nil {
-		err = runWithPipe("git", "fetch")
-		if err != nil {
-			fmt.Printf("\nFailed to checkout to branch `%s`, applying Work In Progress back\n\n", pr.Head.Ref)
-			if rberr := runWithPipe("git", "stash", "pop"); rberr != nil {
-				fmt.Printf("\nFailed to apply changes...\n\n")
-				return rberr
-			}
+	if err := checkoutBranch(pr.Head.Ref); err != nil {
+		fmt.Printf("\nFailed to checkout to branch `%s`, applying Work In Progress back\n\n", pr.Head.Ref)
+		if err := runWithPipe("git", "stash", "pop"); err != nil {
+			fmt.Printf("\nFailed to apply changes...\n\n")
 			return err
 		}
-		err = runWithPipe("git", "checkout", pr.Head.Ref)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
-	fmt.Println()
-
-	err = runWithPipe("git", "pull", "origin", pr.Head.Ref)
-	if err != nil {
+	if err := runWithPipe("git", "pull", "origin", pr.Head.Ref); err != nil {
 		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", pr.Head.Ref)
 	} else {
 		fmt.Printf("\nSwitched to `%s`...\n", pr.Head.Ref)
