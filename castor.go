@@ -13,7 +13,7 @@ import (
 
 // List lists all the PRs
 func List(token string) error {
-	prs, err := listOpenPRs(token)
+	prs, err := fetchOpenPRs(token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
@@ -62,7 +62,7 @@ func Involves(token string) error {
 		return ExitErr(1, err)
 	}
 
-	prs, err := searchPRsInvolvingUser(user, token)
+	prs, err := fetchPRsInvolving(user, token)
 	if err != nil {
 		return ExitErr(1, err)
 	}

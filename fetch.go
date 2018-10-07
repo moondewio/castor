@@ -7,7 +7,7 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func listOpenPRs(token string) (PRsSearch, error) {
+func fetchOpenPRs(token string) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
 		return PRsSearch{}, err
@@ -22,7 +22,7 @@ func listOpenPRs(token string) (PRsSearch, error) {
 	return searchPRs(token, searchQuery)
 }
 
-func searchPRsInvolvingUser(user, token string) (PRsSearch, error) {
+func fetchPRsInvolving(user, token string) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
 		return PRsSearch{}, err
@@ -38,7 +38,6 @@ func searchPRsInvolvingUser(user, token string) (PRsSearch, error) {
 	return searchPRs(token, searchQuery)
 }
 
-// create a client (safe to share across requests)
 var client = graphql.NewClient("https://api.github.com/graphql")
 
 var prBranchNameQuery = `
