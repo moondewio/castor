@@ -84,6 +84,7 @@ query search($query: String!) {
       ... on PullRequest {
         number
         title
+		url
         author {
           login
         }
@@ -132,10 +133,10 @@ query search($query: String!) {
 }
 `
 
-func searchPRs(user, token string) (Search, error) {
+func searchPRs(user, token string) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
-		return Search{}, err
+		return PRsSearch{}, err
 	}
 
 	// make a request
@@ -158,12 +159,12 @@ func searchPRs(user, token string) (Search, error) {
 
 	// run it and capture the response
 	var res struct {
-		Search Search `json:"search"`
+		Search PRsSearch `json:"search"`
 	}
 	ctx := context.Background()
 
 	if err := client.Run(ctx, req, &res); err != nil {
-		return Search{}, err
+		return PRsSearch{}, err
 	}
 
 	return res.Search, nil

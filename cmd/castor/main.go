@@ -102,7 +102,7 @@ func reviewAction(c *cli.Context) error {
 		return castor.ExitErrorF(1, "Missing PR number")
 	}
 
-	return castor.Review(c.Args().First(), loadConf().Token)
+	return castor.ReviewPR(c.Args().First(), loadConf().Token)
 }
 
 func tokenAction(c *cli.Context) error {

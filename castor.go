@@ -23,9 +23,9 @@ func List(token string) error {
 	return nil
 }
 
-// Review checksout the branch of a PR to review it, saving the status of the current
+// ReviewPR checksout the branch of a PR to review it, saving the status of the current
 // branch to allow coming back to it later and continue with the work in progress.
-func Review(n string, token string) error {
+func ReviewPR(n string, token string) error {
 	prNum, err := strconv.Atoi(n)
 	if err != nil {
 		return ExitErrorF(1, "'%s' is not a number", n)
@@ -72,7 +72,7 @@ func Involves(token string) error {
 	return nil
 }
 
-func printInvolvesTable(user string, search Search) {
+func printInvolvesTable(user string, search PRsSearch) {
 	if search.IssueCount == 0 {
 		return
 	}
