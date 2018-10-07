@@ -53,7 +53,7 @@ func main() {
 var commands = []cli.Command{
 	{
 		Name:      "prs",
-		Usage:     "List all PRs",
+		Usage:     "List all PRs (only the first 20)",
 		UsageText: "$ castor prs",
 		Action:    func(c *cli.Context) error { return castor.List(loadConf().Token) },
 	},
@@ -64,9 +64,12 @@ var commands = []cli.Command{
 		Action:    reviewAction,
 	},
 	{
-		// TODO: handle case of multiple WIPs
-		// $ castor back [branch]
-		// $ castor back # prompts branches when multiple WIPs
+		Name:      "involves",
+		Usage:     "List all PRs involving the current user",
+		UsageText: "$ castor involves",
+		Action:    func(c *cli.Context) error { return castor.Involves(loadConf().Token) },
+	},
+	{
 		Name:      "back",
 		Usage:     "Checkout to were you left off",
 		UsageText: "$ castor back",

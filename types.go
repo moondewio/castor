@@ -228,3 +228,67 @@ type Ref struct {
 	User  User   `json:"user"`
 	Repo  Repo   `json:"repo"`
 }
+
+// -------------------------------------
+
+type Search struct {
+	IssueCount int   `json:"issueCount"`
+	Nodes      []PR_ `json:"nodes"`
+}
+
+type PR_ struct {
+	Number             int            `json:"number"`
+	Title              string         `json:"title"`
+	Author             WithLogin      `json:"author"`
+	Closed             bool           `json:"closed"`
+	BaseRefName        string         `json:"baseRefName"`
+	HeadRefName        string         `json:"headRefName"`
+	Labels             Labels         `json:"Labels"`
+	SuggestedReviewers []Reviewer     `json:"suggestedReviewers"`
+	ReviewRequests     ReviewRequests `json:"reviewRequests"`
+	Reviews            Reviews        `json:"reviews"`
+}
+
+type WithLogin struct {
+	Login string `json:"login"`
+}
+
+type Label_ struct {
+	Name  string `json:"name"`
+	Color string `json:"color"`
+}
+
+type Reviewer struct {
+	Reviewer WithLogin `json:"reviewer"`
+}
+
+type RequestedReviewer struct {
+	RequestedReviewer Foo `json:"requestedReviewer"`
+}
+
+type Foo struct {
+	WithLogin
+	Name string `json:"name"`
+}
+
+type Review_ struct {
+	State       string    `json:"state"`
+	SubmittedAt time.Time `json:"submittedAt"`
+	URL         string    `json:"url"`
+	Author      WithLogin `json:"Author"`
+}
+
+type ReviewRequests struct {
+	TotalCount int                 `json:"totalCount"`
+	Nodes      []RequestedReviewer `json:"Nodes"`
+}
+
+type Reviews struct {
+	TotalCount int       `json:"totalCount"`
+	Nodes      []Review_ `json:"Nodes"`
+}
+
+type Labels struct {
+	TotalCount int      `json:"totalCount"`
+	Nodes      []Label_ `json:"nodes"`
+}

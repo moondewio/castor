@@ -117,8 +117,7 @@ func ownerAndRepoFromRemote(remote string) (string, string, error) {
 }
 
 func remoteURL() (string, error) {
-	output, err := output("git", "remote", "get-url", "origin")
-	return strings.Replace(output, "\n", "", 1), err
+	return output("git", "remote", "get-url", "origin")
 }
 
 func lastCommit() (string, error) {
@@ -156,4 +155,8 @@ func stashWIP() (stashEntry, bool) {
 		}, true
 	}
 	return stashEntry{}, false
+}
+
+func gitUser() (string, error) {
+	return output("git", "config", "--global", "user.name")
 }
