@@ -13,30 +13,30 @@ import (
 
 // List lists all the PRs
 func List(token string) error {
-	prs, err := fetchPRs(token)
+	prs, err := fetchOpenPRs(token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	printPRsTable(prs)
+	printPRsList(prs.IssueCount, prs.Nodes)
 
 	return nil
 }
 
-// Review checksout the branch of a PR to review it, saving the status of the current
+// ReviewPR checksout the branch of a PR to review it, saving the status of the current
 // branch to allow coming back to it later and continue with the work in progress.
-func Review(n string, token string) error {
+func ReviewPR(n string, token string) error {
 	prNum, err := strconv.Atoi(n)
 	if err != nil {
 		return ExitErrorF(1, "'%s' is not a number", n)
 	}
 
-	pr, err := fetchPR(prNum, token)
+	branch, err := getPRHeadName(prNum, token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	err = switchToPR(pr)
+	err = switchToBranch(branch)
 	if err != nil {
 		return ExitErr(1, err)
 	}
@@ -55,8 +55,25 @@ func GoBack() error {
 	return nil
 }
 
-func printPRsTable(prs []PR) {
-	if len(prs) == 0 {
+// Involves checks the PRs related to a user
+func Involves(token string) error {
+	user, err := gitUser()
+	if err != nil {
+		return ExitErr(1, err)
+	}
+
+	prs, err := fetchPRsInvolving(user, token)
+	if err != nil {
+		return ExitErr(1, err)
+	}
+
+	printPRsList(prs.IssueCount, prs.Nodes)
+
+	return nil
+}
+
+func printPRsList(count int, prs []SearchPR) {
+	if count == 0 {
 		return
 	}
 	w := new(tabwriter.Writer)
@@ -65,8 +82,24 @@ func printPRsTable(prs []PR) {
 
 	for _, pr := range prs {
 		var reviews string
-		if len(pr.RequestedReviewers) > 0 {
-			reviews = fmt.Sprintf("Missing %v reviews", len(pr.RequestedReviewers))
+		if pr.ReviewRequests.TotalCount > 0 {
+			rev := "reviews"
+			if pr.ReviewRequests.TotalCount == 1 {
+				rev = "review "
+			}
+			var reviewers string
+			for i, r := range pr.ReviewRequests.Nodes {
+				reviewer := r.RequestedReviewer.Login
+				if reviewer == "" {
+					reviewer = r.RequestedReviewer.Name
+				}
+				if i == 0 {
+					reviewers += reviewer
+				} else {
+					reviewers += ", " + reviewer
+				}
+			}
+			reviews = fmt.Sprintf("Missing %v %s (%s)", pr.ReviewRequests.TotalCount, rev, reviewers)
 		}
 
 		fmt.Fprintf(
@@ -74,14 +107,26 @@ func printPRsTable(prs []PR) {
 			" %v\t %s\t %s\t %s\t %s\t %s\n",
 			pr.Number,
 			truncate(pr.Title, 30),
-			pr.Head.Ref,
-			pr.User.Login,
+			pr.HeadRefName,
+			pr.Author.Login,
 			reviews,
 			labels(pr.Labels),
 		)
 	}
 
 	w.Flush()
+}
+
+func labels(ls Labels) string {
+	tags := make([]string, ls.TotalCount)
+
+	for i, l := range ls.Nodes {
+		r, g, b := hex2rgb("#" + l.Color)
+
+		tags[i] = rgbterm.FgString(l.Name, r, g, b)
+	}
+
+	return strings.Join(tags, " ")
 }
 
 func truncate(str string, num int) string {
@@ -103,16 +148,4 @@ func hex2rgb(hex string) (uint8, uint8, uint8) {
 	}
 
 	return c.RGB255()
-}
-
-func labels(ls []Label) string {
-	tags := make([]string, len(ls))
-
-	for i, l := range ls {
-		r, g, b := hex2rgb("#" + l.Color)
-
-		tags[i] = rgbterm.FgString(l.Name, r, g, b)
-	}
-
-	return strings.Join(tags, " ")
 }

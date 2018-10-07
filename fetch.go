@@ -1,72 +1,137 @@
 package castor
 
 import (
-	"fmt"
-	"net/http"
+	"context"
+	"strings"
 
-	"github.com/asmcos/requests"
+	"github.com/machinebox/graphql"
 )
 
-func fetchPRs(token string) ([]PR, error) {
+func fetchOpenPRs(token string) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
-		return []PR{}, err
+		return PRsSearch{}, err
 	}
+	searchQuery := strings.Join([]string{
+		"repo:" + owner + "/" + repo,
+		"type:pr",
+		"is:open",
+		"is:unmerged",
+	}, " ")
 
-	r := requests.Requests()
-	if token != "" {
-		r.Header.Set("Authorization", "token "+token)
-	}
-	res, err := r.Get(githubPRsURL(owner, repo))
-
-	prs := []PR{}
-
-	if err != nil {
-		return prs, err
-	}
-
-	if res.R.StatusCode != http.StatusOK {
-		return prs, fmt.Errorf("Failed to fetch, status: %v", res.R.StatusCode)
-	}
-
-	err = res.Json(&prs)
-
-	return prs, err
+	return searchPRs(token, searchQuery)
 }
 
-func fetchPR(id int, token string) (PR, error) {
+func fetchPRsInvolving(user, token string) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
-		return PR{}, err
+		return PRsSearch{}, err
 	}
+	searchQuery := strings.Join([]string{
+		"repo:" + owner + "/" + repo,
+		"involves:" + user,
+		"type:pr",
+		"is:open",
+		"is:unmerged",
+	}, " ")
 
-	r := requests.Requests()
-	if token != "" {
-		r.Header.Set("Authorization", "token "+token)
-	}
-	res, err := r.Get(githubPRURL(id, owner, repo))
+	return searchPRs(token, searchQuery)
+}
 
-	pr := PR{}
+var client = graphql.NewClient("https://api.github.com/graphql")
 
+var prBranchNameQuery = `
+query repoBranchName($owner: String!, $name:String!, $pr:Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number:$pr) {
+      headRefName
+    }
+  }
+}
+`
+
+func getPRHeadName(id int, token string) (string, error) {
+	owner, repo, err := ownerAndRepo()
 	if err != nil {
-		return pr, err
+		return "", err
 	}
 
-	if res.R.StatusCode != http.StatusOK {
-		return pr, fmt.Errorf("Failed to fetch, status: %v", res.R.StatusCode)
+	req := graphql.NewRequest(prBranchNameQuery)
+	req.Var("owner", owner)
+	req.Var("name", repo)
+	req.Var("pr", id)
+
+	if token != "" {
+		req.Header.Set("Authorization", "token "+token)
 	}
 
-	err = res.Json(&pr)
+	var res map[string]map[string]map[string]string
 
-	return pr, err
+	ctx := context.Background()
+
+	if err := client.Run(ctx, req, &res); err != nil {
+		return "", err
+	}
+
+	return res["repository"]["pullRequest"]["headRefName"], nil
 }
 
-func githubPRsURL(owner, repo string) string {
-	// GET /repos/:owner/:repo/pulls
-	return fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls?status=open", owner, repo)
+var prNodes = `
+nodes {
+  ... on PullRequest {
+	number
+	title
+	url
+	author {
+	  login
+	}
+	headRefName
+	labels(first: 20) {
+	  totalCount
+	  nodes {
+		name
+		color
+	  }
+	}
+	reviewRequests(first: 20) {
+	  totalCount
+	  nodes {
+		requestedReviewer {
+		  ... on User {
+			login
+		  }
+		  ... on Team {
+			name
+		  }
+		}
+	  }
+	}
+  }
 }
+`
 
-func githubPRURL(id int, owner, repo string) string {
-	// GET /repos/:owner/:repo/pulls/:id
-	return fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%v", owner, repo, id)
+var listPRsQuery = `
+query search($query: String!) {
+  search(query: $query, type: ISSUE, first: 100) {
+    issueCount
+    ` + prNodes + `
+  }
+}
+`
+
+func searchPRs(token, searchQuery string) (PRsSearch, error) {
+	req := graphql.NewRequest(listPRsQuery)
+	req.Var("query", searchQuery)
+	req.Header.Set("Authorization", "token "+token)
+
+	var res struct {
+		Search PRsSearch `json:"search"`
+	}
+	ctx := context.Background()
+
+	if err := client.Run(ctx, req, &res); err != nil {
+		return PRsSearch{}, err
+	}
+
+	return res.Search, nil
 }
