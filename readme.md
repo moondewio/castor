@@ -17,6 +17,7 @@ $ go get github.com/gillchristian/castor/cmd/castor
 ## Use
 
 ```
+$ castor
 NAME:
    castor - Review PRs in the terminal
 
@@ -33,7 +34,7 @@ AUTHOR:
    Christian Gill (gillchristiang@gmail.com)
 
 COMMANDS:
-     prs       List all PRs (only the first 20)
+     prs       List all open PRs
      review    Checkout to a PR's branch to review it
      involves  List all PRs involving the current user
      back      Checkout to were you left off

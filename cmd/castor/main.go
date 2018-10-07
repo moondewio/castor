@@ -53,7 +53,7 @@ func main() {
 var commands = []cli.Command{
 	{
 		Name:      "prs",
-		Usage:     "List all PRs (only the first 20)",
+		Usage:     "List all open PRs",
 		UsageText: "$ castor prs",
 		Action:    func(c *cli.Context) error { return castor.List(loadConf().Token) },
 	},

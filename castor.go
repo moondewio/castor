@@ -13,12 +13,12 @@ import (
 
 // List lists all the PRs
 func List(token string) error {
-	prs, err := fetchPRs(token)
+	prs, err := listOpenPRs(token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	printPRsTable(prs)
+	printPRsList(prs.IssueCount, prs.Nodes)
 
 	return nil
 }
@@ -62,25 +62,25 @@ func Involves(token string) error {
 		return ExitErr(1, err)
 	}
 
-	prs, err := searchPRs(user, token)
+	prs, err := searchPRsInvolvingUser(user, token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	printInvolvesTable(user, prs)
+	printPRsList(prs.IssueCount, prs.Nodes)
 
 	return nil
 }
 
-func printInvolvesTable(user string, search PRsSearch) {
-	if search.IssueCount == 0 {
+func printPRsList(count int, prs []SearchPR) {
+	if count == 0 {
 		return
 	}
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)
 	fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t REVIEWS\t LABELS")
 
-	for _, pr := range search.Nodes {
+	for _, pr := range prs {
 		var reviews string
 		if pr.ReviewRequests.TotalCount > 0 {
 			rev := "reviews"
@@ -110,14 +110,14 @@ func printInvolvesTable(user string, search PRsSearch) {
 			pr.HeadRefName,
 			pr.Author.Login,
 			reviews,
-			labels2(pr.Labels),
+			labels(pr.Labels),
 		)
 	}
 
 	w.Flush()
 }
 
-func labels2(ls Labels) string {
+func labels(ls Labels) string {
 	tags := make([]string, ls.TotalCount)
 
 	for i, l := range ls.Nodes {
@@ -127,35 +127,6 @@ func labels2(ls Labels) string {
 	}
 
 	return strings.Join(tags, " ")
-}
-
-func printPRsTable(prs []PR) {
-	if len(prs) == 0 {
-		return
-	}
-	w := new(tabwriter.Writer)
-	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)
-	fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t REVIEWS\t LABELS")
-
-	for _, pr := range prs {
-		var reviews string
-		if len(pr.RequestedReviewers) > 0 {
-			reviews = fmt.Sprintf("Missing %v reviews", len(pr.RequestedReviewers))
-		}
-
-		fmt.Fprintf(
-			w,
-			" %v\t %s\t %s\t %s\t %s\t %s\n",
-			pr.Number,
-			truncate(pr.Title, 30),
-			pr.Head.Ref,
-			pr.User.Login,
-			reviews,
-			labels(pr.Labels),
-		)
-	}
-
-	w.Flush()
 }
 
 func truncate(str string, num int) string {
@@ -177,16 +148,4 @@ func hex2rgb(hex string) (uint8, uint8, uint8) {
 	}
 
 	return c.RGB255()
-}
-
-func labels(ls []Label) string {
-	tags := make([]string, len(ls))
-
-	for i, l := range ls {
-		r, g, b := hex2rgb("#" + l.Color)
-
-		tags[i] = rgbterm.FgString(l.Name, r, g, b)
-	}
-
-	return strings.Join(tags, " ")
 }

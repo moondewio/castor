@@ -32,16 +32,6 @@ func ExitErrorF(code int, format string, a ...interface{}) ExitError {
 	return ExitError{fmt.Errorf(format, a...), code}
 }
 
-type PR struct {
-	URL                string      `json:"url"`
-	Number             int         `json:"number"`
-	Title              string      `json:"title"`
-	Labels             []Label     `json:"labels"`
-	RequestedReviewers []WithLogin `json:"requested_reviewers"`
-	Head               Ref         `json:"head"`
-	User               WithLogin   `json:"user"`
-}
-
 type Label struct {
 	Name  string `json:"name"`
 	Color string `json:"color"`
@@ -61,21 +51,13 @@ type PRsSearch struct {
 }
 
 type SearchPR struct {
-	URL                string         `json:"url"`
-	Number             int            `json:"number"`
-	Title              string         `json:"title"`
-	Author             WithLogin      `json:"author"`
-	Closed             bool           `json:"closed"`
-	BaseRefName        string         `json:"baseRefName"`
-	HeadRefName        string         `json:"headRefName"`
-	Labels             Labels         `json:"Labels"`
-	SuggestedReviewers []Reviewer     `json:"suggestedReviewers"`
-	ReviewRequests     ReviewRequests `json:"reviewRequests"`
-	Reviews            Reviews        `json:"reviews"`
-}
-
-type Reviewer struct {
-	Reviewer WithLogin `json:"reviewer"`
+	URL            string         `json:"url"`
+	Number         int            `json:"number"`
+	Title          string         `json:"title"`
+	Author         WithLogin      `json:"author"`
+	HeadRefName    string         `json:"headRefName"`
+	Labels         Labels         `json:"Labels"`
+	ReviewRequests ReviewRequests `json:"reviewRequests"`
 }
 
 type LoginAndName struct {
@@ -97,11 +79,6 @@ type RequestedReviewer struct {
 type ReviewRequests struct {
 	TotalCount int                 `json:"totalCount"`
 	Nodes      []RequestedReviewer `json:"Nodes"`
-}
-
-type Reviews struct {
-	TotalCount int      `json:"totalCount"`
-	Nodes      []Review `json:"Nodes"`
 }
 
 type Labels struct {

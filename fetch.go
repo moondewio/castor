@@ -2,39 +2,40 @@ package castor
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 	"strings"
 
-	"github.com/asmcos/requests"
 	"github.com/machinebox/graphql"
 )
 
-func fetchPRs(token string) ([]PR, error) {
+func listOpenPRs(token string) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
-		return []PR{}, err
+		return PRsSearch{}, err
 	}
+	searchQuery := strings.Join([]string{
+		"repo:" + owner + "/" + repo,
+		"type:pr",
+		"is:open",
+		"is:unmerged",
+	}, " ")
 
-	r := requests.Requests()
-	if token != "" {
-		r.Header.Set("Authorization", "token "+token)
-	}
-	res, err := r.Get(githubPRsURL(owner, repo))
+	return searchPRs(token, searchQuery)
+}
 
-	prs := []PR{}
-
+func searchPRsInvolvingUser(user, token string) (PRsSearch, error) {
+	owner, repo, err := ownerAndRepo()
 	if err != nil {
-		return prs, err
+		return PRsSearch{}, err
 	}
+	searchQuery := strings.Join([]string{
+		"repo:" + owner + "/" + repo,
+		"involves:" + user,
+		"type:pr",
+		"is:open",
+		"is:unmerged",
+	}, " ")
 
-	if res.R.StatusCode != http.StatusOK {
-		return prs, fmt.Errorf("Failed to fetch, status: %v", res.R.StatusCode)
-	}
-
-	err = res.Json(&prs)
-
-	return prs, err
+	return searchPRs(token, searchQuery)
 }
 
 // create a client (safe to share across requests)
@@ -76,88 +77,54 @@ func getPRHeadName(id int, token string) (string, error) {
 	return res["repository"]["pullRequest"]["headRefName"], nil
 }
 
-var searchQuery = `
-query search($query: String!) {
-  search(query: $query, type: ISSUE, first: 10) {
-    issueCount
-    nodes {
-      ... on PullRequest {
-        number
-        title
-		url
-        author {
-          login
-        }
-        closed
-        baseRefName
-        headRefName
-        labels(first: 20) {
-          totalCount
-          nodes {
-            name
-            color
-          }
-        }
-        suggestedReviewers {
-          reviewer {
-            login
-          }
-        }
-        reviewRequests(first: 20) {
-          totalCount
-          nodes {
-            requestedReviewer {
-              ... on User {
-                login
-              }
-              ... on Team {
-                name
-              }
-            }
-          }
-        }
-        reviews(first: 20) {
-          totalCount
-          nodes {
-            state
-            author {
-              login
-            }
-            submittedAt
-            url
-          }
-        }
-      }
-    }
+var prNodes = `
+nodes {
+  ... on PullRequest {
+	number
+	title
+	url
+	author {
+	  login
+	}
+	headRefName
+	labels(first: 20) {
+	  totalCount
+	  nodes {
+		name
+		color
+	  }
+	}
+	reviewRequests(first: 20) {
+	  totalCount
+	  nodes {
+		requestedReviewer {
+		  ... on User {
+			login
+		  }
+		  ... on Team {
+			name
+		  }
+		}
+	  }
+	}
   }
 }
 `
 
-func searchPRs(user, token string) (PRsSearch, error) {
-	owner, repo, err := ownerAndRepo()
-	if err != nil {
-		return PRsSearch{}, err
-	}
+var listPRsQuery = `
+query search($query: String!) {
+  search(query: $query, type: ISSUE, first: 100) {
+    issueCount
+    ` + prNodes + `
+  }
+}
+`
 
-	// make a request
-	req := graphql.NewRequest(searchQuery)
-
-	search := strings.Join([]string{
-		"repo:" + owner + "/" + repo,
-		"involves:" + user,
-		"type:pr",
-		"is:open",
-		"is:unmerged",
-	}, " ")
-
-	// set any variables
-	req.Var("query", search)
-
-	// set header fields
-	// req.Header.Set("Cache-Control", "no-cache")
+func searchPRs(token, searchQuery string) (PRsSearch, error) {
+	req := graphql.NewRequest(listPRsQuery)
+	req.Var("query", searchQuery)
 	req.Header.Set("Authorization", "token "+token)
 
-	// run it and capture the response
 	var res struct {
 		Search PRsSearch `json:"search"`
 	}
@@ -168,14 +135,4 @@ func searchPRs(user, token string) (PRsSearch, error) {
 	}
 
 	return res.Search, nil
-}
-
-func githubPRsURL(owner, repo string) string {
-	// GET /repos/:owner/:repo/pulls
-	return fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls?status=open", owner, repo)
-}
-
-func githubPRURL(id int, owner, repo string) string {
-	// GET /repos/:owner/:repo/pulls/:id
-	return fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%v", owner, repo, id)
 }
