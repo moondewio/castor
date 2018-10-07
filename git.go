@@ -25,7 +25,7 @@ func checkoutBranch(branch string) error {
 	return nil
 }
 
-func switchToPR(pr PR) error {
+func switchToBranch(branch string) error {
 	if !isRepo() {
 		return fmt.Errorf("Not a git repository")
 	}
@@ -36,8 +36,8 @@ func switchToPR(pr PR) error {
 		return err
 	}
 
-	if err := checkoutBranch(pr.Head.Ref); err != nil {
-		fmt.Printf("\nFailed to checkout to branch `%s`, applying Work In Progress back\n\n", pr.Head.Ref)
+	if err := checkoutBranch(branch); err != nil {
+		fmt.Printf("\nFailed to checkout to branch `%s`, applying Work In Progress back\n\n", branch)
 		if err := runWithPipe("git", "stash", "pop"); err != nil {
 			fmt.Printf("\nFailed to apply changes...\n\n")
 			return err
@@ -45,10 +45,10 @@ func switchToPR(pr PR) error {
 		return err
 	}
 
-	if err := runWithPipe("git", "pull", "origin", pr.Head.Ref); err != nil {
-		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", pr.Head.Ref)
+	if err := runWithPipe("git", "pull", "origin", branch); err != nil {
+		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", branch)
 	} else {
-		fmt.Printf("\nSwitched to `%s`...\n", pr.Head.Ref)
+		fmt.Printf("\nSwitched to `%s`...\n", branch)
 	}
 
 	return nil

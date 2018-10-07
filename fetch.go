@@ -37,31 +37,43 @@ func fetchPRs(token string) ([]PR, error) {
 	return prs, err
 }
 
-func fetchPR(id int, token string) (PR, error) {
+// create a client (safe to share across requests)
+var client = graphql.NewClient("https://api.github.com/graphql")
+
+var prBranchNameQuery = `
+query repoBranchName($owner: String!, $name:String!, $pr:Int!) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number:$pr) {
+      headRefName
+    }
+  }
+}
+`
+
+func getPRHeadName(id int, token string) (string, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
-		return PR{}, err
+		return "", err
 	}
 
-	r := requests.Requests()
+	req := graphql.NewRequest(prBranchNameQuery)
+	req.Var("owner", owner)
+	req.Var("name", repo)
+	req.Var("pr", id)
+
 	if token != "" {
-		r.Header.Set("Authorization", "token "+token)
-	}
-	res, err := r.Get(githubPRURL(id, owner, repo))
-
-	pr := PR{}
-
-	if err != nil {
-		return pr, err
+		req.Header.Set("Authorization", "token "+token)
 	}
 
-	if res.R.StatusCode != http.StatusOK {
-		return pr, fmt.Errorf("Failed to fetch, status: %v", res.R.StatusCode)
+	var res map[string]map[string]map[string]string
+
+	ctx := context.Background()
+
+	if err := client.Run(ctx, req, &res); err != nil {
+		return "", err
 	}
 
-	err = res.Json(&pr)
-
-	return pr, err
+	return res["repository"]["pullRequest"]["headRefName"], nil
 }
 
 var searchQuery = `
@@ -119,9 +131,6 @@ query search($query: String!) {
   }
 }
 `
-
-// create a client (safe to share across requests)
-var client = graphql.NewClient("https://api.github.com/graphql")
 
 func searchPRs(user, token string) (Search, error) {
 	owner, repo, err := ownerAndRepo()

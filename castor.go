@@ -31,12 +31,12 @@ func Review(n string, token string) error {
 		return ExitErrorF(1, "'%s' is not a number", n)
 	}
 
-	pr, err := fetchPR(prNum, token)
+	branch, err := getPRHeadName(prNum, token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	err = switchToPR(pr)
+	err = switchToBranch(branch)
 	if err != nil {
 		return ExitErr(1, err)
 	}
