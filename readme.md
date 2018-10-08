@@ -6,7 +6,7 @@
 >
 > **All feedback is welcome**
 
-[![asciicast](https://asciinema.org/a/203682.png)](https://asciinema.org/a/203682)
+[![castor-v1.0.0](https://asciinema.org/a/205135.png)](https://asciinema.org/a/205135)
 
 ## Install
 
