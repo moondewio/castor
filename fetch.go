@@ -17,6 +17,7 @@ func fetchPRs(conf PRsConfig, user, token string) (PRsSearch, error) {
 	if !conf.All {
 		search = append(search, "repo:"+owner+"/"+repo)
 	}
+	// TODO: closed vs merged
 	if conf.Closed && !conf.Open {
 		search = append(search, "is:closed")
 	}
@@ -78,6 +79,14 @@ nodes {
 	author {
 	  login
 	}
+	headRepository {
+      name
+    }
+    headRepositoryOwner {
+      login
+    }
+	closed
+	merged
 	headRefName
 	labels(first: 20) {
 	  totalCount

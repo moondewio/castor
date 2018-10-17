@@ -64,14 +64,15 @@ func GoBack() error {
 	return nil
 }
 
-// TODO: include repo and open/closed
+// TODO: print repo only when `--all`
+// TODO: don't print status if all open (only closed could be merged/closed)
 func printPRsList(count int, prs []SearchPR) {
 	if count == 0 {
 		return
 	}
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)
-	fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t REVIEWS\t LABELS")
+	fmt.Fprintln(w, " PR\t REPO\t TITLE\t BRANCH\t AUTHOR\t STATUS\t REVIEWS\t LABELS")
 
 	for _, pr := range prs {
 		var reviews string
@@ -95,13 +96,24 @@ func printPRsList(count int, prs []SearchPR) {
 			reviews = fmt.Sprintf("Missing %v %s (%s)", pr.ReviewRequests.TotalCount, rev, reviewers)
 		}
 
+		// TODO: fix string len when using colors (breaks column width)
+		status := "Open" // rgbterm.FgString("Open", 0, 255, 0)
+		if pr.Closed {
+			status = "Closed" // rgbterm.FgString("Closed", 255, 0, 0)
+		}
+		if pr.Merged {
+			status = "Merged" // rgbterm.FgString("Merged", 111, 66, 193)
+		}
+
 		fmt.Fprintf(
 			w,
-			" %v\t %s\t %s\t %s\t %s\t %s\n",
+			" %v\t %s\t %s\t %s\t %s\t %s\t %s\t %s\n",
 			pr.Number,
+			pr.HeadRepositoryOwner.Login+"/"+pr.HeadRepository.Name,
 			truncate(pr.Title, 30),
 			truncate(pr.HeadRefName, 30),
 			pr.Author.Login,
+			status,
 			reviews,
 			labels(pr.Labels),
 		)
