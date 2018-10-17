@@ -27,7 +27,7 @@ func List(conf PRsConfig, token string) error {
 		return ExitErr(1, err)
 	}
 
-	printPRsList(prs.IssueCount, prs.Nodes)
+	printPRsList(conf, prs.IssueCount, prs.Nodes)
 
 	return nil
 }
@@ -66,13 +66,18 @@ func GoBack() error {
 
 // TODO: print repo only when `--all`
 // TODO: don't print status if all open (only closed could be merged/closed)
-func printPRsList(count int, prs []SearchPR) {
+func printPRsList(conf PRsConfig, count int, prs []SearchPR) {
 	if count == 0 {
 		return
 	}
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)
-	fmt.Fprintln(w, " PR\t REPO\t TITLE\t BRANCH\t AUTHOR\t STATUS\t REVIEWS\t LABELS")
+	switch {
+	case conf.All:
+		fmt.Fprintln(w, " PR\t REPO\t TITLE\t BRANCH\t AUTHOR\t STATUS\t REVIEWS\t LABELS")
+	default:
+		fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t STATUS\t REVIEWS\t LABELS")
+	}
 
 	for _, pr := range prs {
 		var reviews string
@@ -105,18 +110,33 @@ func printPRsList(count int, prs []SearchPR) {
 			status = "Merged" // rgbterm.FgString("Merged", 111, 66, 193)
 		}
 
-		fmt.Fprintf(
-			w,
-			" %v\t %s\t %s\t %s\t %s\t %s\t %s\t %s\n",
-			pr.Number,
-			pr.HeadRepositoryOwner.Login+"/"+pr.HeadRepository.Name,
-			truncate(pr.Title, 30),
-			truncate(pr.HeadRefName, 30),
-			pr.Author.Login,
-			status,
-			reviews,
-			labels(pr.Labels),
-		)
+		switch {
+		case conf.All:
+			fmt.Fprintf(
+				w,
+				" %v\t %s\t %s\t %s\t %s\t %s\t %s\t %s\n",
+				pr.Number,
+				pr.HeadRepositoryOwner.Login+"/"+pr.HeadRepository.Name,
+				truncate(pr.Title, 30),
+				truncate(pr.HeadRefName, 30),
+				pr.Author.Login,
+				status,
+				reviews,
+				labels(pr.Labels),
+			)
+		default:
+			fmt.Fprintf(
+				w,
+				" %v\t %s\t %s\t %s\t %s\t %s\t %s\n",
+				pr.Number,
+				truncate(pr.Title, 30),
+				truncate(pr.HeadRefName, 30),
+				pr.Author.Login,
+				status,
+				reviews,
+				labels(pr.Labels),
+			)
+		}
 	}
 
 	w.Flush()
