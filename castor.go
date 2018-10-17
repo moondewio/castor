@@ -11,9 +11,18 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
+// PRsConfig holds the configuration for listing PRs.
+type PRsConfig struct {
+	All, Everyone, Closed, Open bool
+}
+
 // List lists all the PRs
-func List(token string) error {
-	prs, err := fetchOpenPRs(token)
+func List(conf PRsConfig, token string) error {
+	user, err := gitUser()
+	if err != nil {
+		return ExitErr(1, err)
+	}
+	prs, err := fetchPRs(conf, user, token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
@@ -55,23 +64,7 @@ func GoBack() error {
 	return nil
 }
 
-// Involves checks the PRs related to a user
-func Involves(token string) error {
-	user, err := gitUser()
-	if err != nil {
-		return ExitErr(1, err)
-	}
-
-	prs, err := fetchPRsInvolving(user, token)
-	if err != nil {
-		return ExitErr(1, err)
-	}
-
-	printPRsList(prs.IssueCount, prs.Nodes)
-
-	return nil
-}
-
+// TODO: include repo and open/closed
 func printPRsList(count int, prs []SearchPR) {
 	if count == 0 {
 		return
@@ -107,7 +100,7 @@ func printPRsList(count int, prs []SearchPR) {
 			" %v\t %s\t %s\t %s\t %s\t %s\n",
 			pr.Number,
 			truncate(pr.Title, 30),
-			pr.HeadRefName,
+			truncate(pr.HeadRefName, 30),
 			pr.Author.Login,
 			reviews,
 			labels(pr.Labels),

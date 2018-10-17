@@ -34,12 +34,11 @@ AUTHOR:
    Christian Gill (gillchristiang@gmail.com)
 
 COMMANDS:
-     prs       List all open PRs
-     review    Checkout to a PR's branch to review it
-     involves  List all PRs involving the current user
-     back      Checkout to were you left off
-     token     Save the GitHub API token to use with other commands
-     help, h   Shows a list of commands or help for one command
+     prs      List PRs
+     review   Checkout to a PR's branch to review it
+     back     Checkout to were you left off
+     token    Save the GitHub API token to use with other commands
+     help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --token value  GitHub API Token for accessing private repos
