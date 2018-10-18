@@ -8,9 +8,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gillchristian/castor"
 	"github.com/micro/go-config"
 	"github.com/micro/go-config/source/file"
+	"github.com/moondewio/castor"
 	"github.com/urfave/cli"
 )
 

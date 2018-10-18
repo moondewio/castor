@@ -11,7 +11,7 @@
 ## Install
 
 ```
-$ go get github.com/gillchristian/castor/cmd/castor
+$ go get github.com/moondewio/castor/cmd/castor
 ```
 
 ## Use
