@@ -11,14 +11,23 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
+// PRsConfig holds the configuration for listing PRs.
+type PRsConfig struct {
+	All, Everyone, Closed, Open bool
+}
+
 // List lists all the PRs
-func List(token string) error {
-	prs, err := fetchOpenPRs(token)
+func List(conf PRsConfig, token string) error {
+	user, err := gitUser()
+	if err != nil {
+		return ExitErr(1, err)
+	}
+	prs, err := fetchPRs(conf, user, token)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	printPRsList(prs.IssueCount, prs.Nodes)
+	printPRsList(conf, prs.IssueCount, prs.Nodes)
 
 	return nil
 }
@@ -55,30 +64,19 @@ func GoBack() error {
 	return nil
 }
 
-// Involves checks the PRs related to a user
-func Involves(token string) error {
-	user, err := gitUser()
-	if err != nil {
-		return ExitErr(1, err)
-	}
-
-	prs, err := fetchPRsInvolving(user, token)
-	if err != nil {
-		return ExitErr(1, err)
-	}
-
-	printPRsList(prs.IssueCount, prs.Nodes)
-
-	return nil
-}
-
-func printPRsList(count int, prs []SearchPR) {
+// TODO: don't print status if all open (`--closed` could be merged/closed)
+func printPRsList(conf PRsConfig, count int, prs []SearchPR) {
 	if count == 0 {
 		return
 	}
 	w := new(tabwriter.Writer)
 	w.Init(os.Stdout, 5, 2, 1, ' ', tabwriter.Debug)
-	fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t REVIEWS\t LABELS")
+	switch {
+	case conf.All:
+		fmt.Fprintln(w, " PR\t REPO\t TITLE\t BRANCH\t AUTHOR\t STATUS\t REVIEWS\t LABELS")
+	default:
+		fmt.Fprintln(w, " PR\t TITLE\t BRANCH\t AUTHOR\t STATUS\t REVIEWS\t LABELS")
+	}
 
 	for _, pr := range prs {
 		var reviews string
@@ -102,16 +100,42 @@ func printPRsList(count int, prs []SearchPR) {
 			reviews = fmt.Sprintf("Missing %v %s (%s)", pr.ReviewRequests.TotalCount, rev, reviewers)
 		}
 
-		fmt.Fprintf(
-			w,
-			" %v\t %s\t %s\t %s\t %s\t %s\n",
-			pr.Number,
-			truncate(pr.Title, 30),
-			pr.HeadRefName,
-			pr.Author.Login,
-			reviews,
-			labels(pr.Labels),
-		)
+		// TODO: fix string len when using colors (breaks column width)
+		status := "Open" // rgbterm.FgString("Open", 0, 255, 0)
+		if pr.Closed {
+			status = "Closed" // rgbterm.FgString("Closed", 255, 0, 0)
+		}
+		if pr.Merged {
+			status = "Merged" // rgbterm.FgString("Merged", 111, 66, 193)
+		}
+
+		switch {
+		case conf.All:
+			fmt.Fprintf(
+				w,
+				" %v\t %s\t %s\t %s\t %s\t %s\t %s\t %s\n",
+				pr.Number,
+				pr.HeadRepositoryOwner.Login+"/"+pr.HeadRepository.Name,
+				truncate(pr.Title, 30),
+				truncate(pr.HeadRefName, 30),
+				pr.Author.Login,
+				status,
+				reviews,
+				labels(pr.Labels),
+			)
+		default:
+			fmt.Fprintf(
+				w,
+				" %v\t %s\t %s\t %s\t %s\t %s\t %s\n",
+				pr.Number,
+				truncate(pr.Title, 30),
+				truncate(pr.HeadRefName, 30),
+				pr.Author.Login,
+				status,
+				reviews,
+				labels(pr.Labels),
+			)
+		}
 	}
 
 	w.Flush()

@@ -51,13 +51,25 @@ type PRsSearch struct {
 }
 
 type SearchPR struct {
-	URL            string         `json:"url"`
-	Number         int            `json:"number"`
-	Title          string         `json:"title"`
-	Author         WithLogin      `json:"author"`
-	HeadRefName    string         `json:"headRefName"`
-	Labels         Labels         `json:"Labels"`
-	ReviewRequests ReviewRequests `json:"reviewRequests"`
+	URL                 string         `json:"url"`
+	Number              int            `json:"number"`
+	Title               string         `json:"title"`
+	Author              WithLogin      `json:"author"`
+	HeadRefName         string         `json:"headRefName"`
+	HeadRepository      Name           `json:"headRepository"`
+	HeadRepositoryOwner Login          `json:"headRepositoryOwner"`
+	Closed              bool           `json:"closed"`
+	Merged              bool           `json:"Merged"`
+	Labels              Labels         `json:"Labels"`
+	ReviewRequests      ReviewRequests `json:"reviewRequests"`
+}
+
+type Name struct {
+	Name string `json:"name"`
+}
+
+type Login struct {
+	Login string `json:"login"`
 }
 
 type LoginAndName struct {

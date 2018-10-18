@@ -34,7 +34,7 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "castor"
-	app.Version = "1.0.0"
+	app.Version = "0.0.2"
 	app.Author = "Christian Gill (gillchristiang@gmail.com)"
 	app.Usage = "Review PRs in the terminal"
 	app.UsageText = strings.Join([]string{
@@ -53,21 +53,16 @@ func main() {
 var commands = []cli.Command{
 	{
 		Name:      "prs",
-		Usage:     "List all open PRs",
+		Usage:     "List PRs",
 		UsageText: "$ castor prs",
-		Action:    func(c *cli.Context) error { return castor.List(loadConf().Token) },
+		Action:    prs,
+		Flags:     prsFlags,
 	},
 	{
 		Name:      "review",
 		Usage:     "Checkout to a PR's branch to review it",
 		UsageText: "$ castor review 14",
 		Action:    reviewAction,
-	},
-	{
-		Name:      "involves",
-		Usage:     "List all PRs involving the current user",
-		UsageText: "$ castor involves",
-		Action:    func(c *cli.Context) error { return castor.Involves(loadConf().Token) },
 	},
 	{
 		Name:      "back",
@@ -93,6 +88,38 @@ var flags = []cli.Flag{
 		Usage:       "GitHub API Token for accessing private repos",
 		Destination: &token,
 	},
+}
+
+var prsFlags = []cli.Flag{
+	cli.BoolFlag{
+		Name:  "all",
+		Usage: "All the projects I contribute to",
+	},
+	cli.BoolFlag{
+		Name:  "everyone",
+		Usage: "Include everyone's PRs, not only mine",
+	},
+	cli.BoolFlag{
+		Name:  "closed",
+		Usage: "Include closed PRs",
+	},
+	// cli.BoolTFlag defaults to true
+	cli.BoolTFlag{
+		Name:  "open",
+		Usage: "Include open PRs (defaults to true)",
+	},
+}
+
+func prs(c *cli.Context) error {
+	return castor.List(
+		castor.PRsConfig{
+			All:      c.Bool("all"),
+			Everyone: c.Bool("everyone"),
+			Closed:   c.Bool("closed"),
+			Open:     c.Bool("open"),
+		},
+		loadConf().Token,
+	)
 }
 
 func reviewAction(c *cli.Context) error {

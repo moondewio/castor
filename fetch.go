@@ -7,35 +7,29 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func fetchOpenPRs(token string) (PRsSearch, error) {
+func fetchPRs(conf PRsConfig, user, token string) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
 		return PRsSearch{}, err
 	}
-	searchQuery := strings.Join([]string{
-		"repo:" + owner + "/" + repo,
-		"type:pr",
-		"is:open",
-		"is:unmerged",
-	}, " ")
+	search := []string{"type:pr"}
 
-	return searchPRs(token, searchQuery)
-}
-
-func fetchPRsInvolving(user, token string) (PRsSearch, error) {
-	owner, repo, err := ownerAndRepo()
-	if err != nil {
-		return PRsSearch{}, err
+	if !conf.All {
+		search = append(search, "repo:"+owner+"/"+repo)
 	}
-	searchQuery := strings.Join([]string{
-		"repo:" + owner + "/" + repo,
-		"involves:" + user,
-		"type:pr",
-		"is:open",
-		"is:unmerged",
-	}, " ")
+	// TODO: closed vs merged
+	if conf.Closed && !conf.Open {
+		search = append(search, "is:closed")
+	}
+	if conf.Open && !conf.Closed {
+		search = append(search, "is:open")
+	}
+	if !conf.Everyone {
+		// TODO: involves vs author
+		search = append(search, "involves:"+user)
+	}
 
-	return searchPRs(token, searchQuery)
+	return searchPRs(token, strings.Join(search, " "))
 }
 
 var client = graphql.NewClient("https://api.github.com/graphql")
@@ -85,6 +79,14 @@ nodes {
 	author {
 	  login
 	}
+	headRepository {
+      name
+    }
+    headRepositoryOwner {
+      login
+    }
+	closed
+	merged
 	headRefName
 	labels(first: 20) {
 	  totalCount
