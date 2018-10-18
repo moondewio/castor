@@ -65,19 +65,26 @@ func switchToBranch(branch string) error {
 	return nil
 }
 
-func goBack() error {
+func goBack(branch string) error {
 	if !isRepo() {
 		return fmt.Errorf("Not a git repository")
-	}
-
-	wip, ok := stashWIP()
-	if !ok {
-		return fmt.Errorf("Castor didn't save any Work In Progress in this repository")
 	}
 
 	cur, err := currentBranch()
 	if err != nil {
 		return err
+	}
+
+	if branch == cur {
+		return fmt.Errorf("Already in branch `%s`", branch)
+	}
+
+	wip, ok := stashWIP(branch)
+	if !ok {
+		if branch == "" {
+			return fmt.Errorf("Castor didn't save any Work In Progress in this repository")
+		}
+		return fmt.Errorf("Castor didn't save any Work In Progress in branch `%s`", branch)
 	}
 
 	if cur != wip.branch {
@@ -155,11 +162,15 @@ type stashEntry struct {
 	msg    string
 }
 
-// $ stash list
+// stashWIP finds the castor WIP branch by parcing the git stash output:
+//
+// $ git stash list
 // stash@{0}: WIP on branch/current: a114cb6 Batman
 // stash@{1}: On branch/current: [CASTOR WIP]
 // stash@{2}: On branch/foo: b225dc7 foo
-func stashWIP() (stashEntry, bool) {
+//
+// If branch is an empty string, returns the last WIP branch.
+func stashWIP(branch string) (stashEntry, bool) {
 	stash, err := output("git", "stash", "list")
 	if err != nil {
 		return stashEntry{}, false
@@ -167,7 +178,7 @@ func stashWIP() (stashEntry, bool) {
 
 	var match string
 	for _, entry := range strings.Split(stash, "\n") {
-		if strings.Contains(strings.TrimSpace(entry), castorWIPMsg) {
+		if strings.Contains(strings.TrimSpace(entry), castorWIPMsg) && strings.Contains(entry, branch) {
 			match = entry
 		}
 	}

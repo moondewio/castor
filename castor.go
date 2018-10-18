@@ -54,8 +54,8 @@ func ReviewPR(n string, token string) error {
 }
 
 // GoBack checkouts back to the last WIP brach
-func GoBack() error {
-	err := goBack()
+func GoBack(branch string) error {
+	err := goBack(branch)
 
 	if err != nil {
 		return ExitErr(1, err)

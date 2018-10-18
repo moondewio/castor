@@ -68,7 +68,8 @@ var commands = []cli.Command{
 		Name:      "back",
 		Usage:     "Checkout to were you left off",
 		UsageText: "$ castor back",
-		Action:    func(c *cli.Context) error { return castor.GoBack() },
+		Flags:     backFlags,
+		Action:    func(c *cli.Context) error { return castor.GoBack(c.String("branch")) },
 	},
 	{
 		Name:  "token",
@@ -107,6 +108,13 @@ var prsFlags = []cli.Flag{
 	cli.BoolTFlag{
 		Name:  "open",
 		Usage: "Include open PRs (defaults to true)",
+	},
+}
+
+var backFlags = []cli.Flag{
+	cli.StringFlag{
+		Name:  "branch",
+		Usage: "Branch to go back to",
 	},
 }
 
