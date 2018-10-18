@@ -2,12 +2,14 @@ package castor
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/whilp/git-urls"
 )
 
 var castorWIPMsg = "[CASTOR WIP]"
+var castorWIPFile = ".castorwip"
 
 func checkoutBranch(branch string) error {
 	fmt.Printf("\nSwitching to branch `%s`\n\n", branch)
@@ -30,6 +32,15 @@ func switchToBranch(branch string) error {
 		return fmt.Errorf("Not a git repository")
 	}
 
+	if isClean() {
+		fmt.Print("Repository is clean, creating .castorwip to keep a reference to the branch\n\n")
+		f, err := os.Create(castorWIPFile)
+		if err != nil {
+			return err
+		}
+		f.Close()
+	}
+
 	fmt.Printf("Saving Work In Progress\n\n")
 	if err := runWithPipe("git", "stash", "save", "-u", castorWIPMsg); err != nil {
 		fmt.Printf("\nCouldn't stash files...\n\n")
@@ -48,7 +59,7 @@ func switchToBranch(branch string) error {
 	if err := runWithPipe("git", "pull", "origin", branch); err != nil {
 		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", branch)
 	} else {
-		fmt.Printf("\nSwitched to `%s`...\n", branch)
+		fmt.Printf("\nSwitched to branch `%s`\n", branch)
 	}
 
 	return nil
@@ -80,7 +91,21 @@ func goBack() error {
 
 	fmt.Printf("Recovering your Work In Progress\n\n")
 
-	return runWithPipe("git", "stash", "pop", wip.id)
+	err = runWithPipe("git", "stash", "pop", wip.id)
+	if err != nil {
+		return err
+	}
+
+	if _, err := os.Stat(castorWIPFile); !os.IsNotExist(err) {
+		err := os.Remove(castorWIPFile)
+		if err != nil {
+			return err
+		}
+		fmt.Print("\nRemoved .castorwip file\n\n")
+		return runWithPipe("git", "status")
+	}
+
+	return nil
 }
 
 func currentBranch() (string, error) {
@@ -159,4 +184,10 @@ func stashWIP() (stashEntry, bool) {
 
 func gitUser() (string, error) {
 	return output("git", "config", "--global", "user.name")
+}
+
+func isClean() bool {
+	out, _ := output("git", "status")
+
+	return strings.Index(out, "nothing to commit") != -1
 }
