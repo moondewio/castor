@@ -64,8 +64,7 @@ func GoBack() error {
 	return nil
 }
 
-// TODO: print repo only when `--all`
-// TODO: don't print status if all open (only closed could be merged/closed)
+// TODO: don't print status if all open (`--closed` could be merged/closed)
 func printPRsList(conf PRsConfig, count int, prs []SearchPR) {
 	if count == 0 {
 		return

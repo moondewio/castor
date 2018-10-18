@@ -34,7 +34,7 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "castor"
-	app.Version = "1.0.0"
+	app.Version = "0.0.2"
 	app.Author = "Christian Gill (gillchristiang@gmail.com)"
 	app.Usage = "Review PRs in the terminal"
 	app.UsageText = strings.Join([]string{
