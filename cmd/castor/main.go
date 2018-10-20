@@ -60,13 +60,15 @@ var commands = []cli.Command{
 			"$ castor prs --everyone",
 			"$ castor prs --all",
 		}, "\n   "),
-		Action: func(ctx *cli.Context) error { return castor.List(loadConf(ctx)) },
-		Flags:  prsFlags,
+		Aliases: []string{"ls"},
+		Action:  func(ctx *cli.Context) error { return castor.List(loadConf(ctx)) },
+		Flags:   prsFlags,
 	},
 	{
 		Name:      "review",
 		Usage:     "Checkout to a PR's branch to review it",
 		UsageText: "$ castor review 42",
+		Aliases:   []string{"r"},
 		Action:    reviewAction,
 		Flags:     commonFlags,
 	},
@@ -74,6 +76,7 @@ var commands = []cli.Command{
 		Name:      "back",
 		Usage:     "Checkout to were you left off",
 		UsageText: "$ castor back",
+		Aliases:   []string{"b"},
 		Flags:     backFlags,
 		Action:    func(ctx *cli.Context) error { return castor.GoBack(ctx.String("branch")) },
 	},
@@ -85,9 +88,9 @@ var commands = []cli.Command{
 			"$ castor config --user [github username]",
 			"$ castor config --token [token] --user [github username]",
 		}, "\n   "),
-
-		Action: configAction,
-		Flags:  commonFlags,
+		Aliases: []string{"c"},
+		Action:  configAction,
+		Flags:   commonFlags,
 	},
 }
 
