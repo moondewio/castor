@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"log"
 	"os"
@@ -14,12 +15,12 @@ import (
 	"github.com/urfave/cli"
 )
 
-var token string
 var castorfile string
 
-// Conf contains the app configuration
-type Conf struct {
-	Token string `json:"token"`
+// GlobalConf contains the app configuration
+type GlobalConf struct {
+	Token string `json:"token,omitempty"`
+	User  string `json:"user,omitempty"`
 }
 
 func init() {
@@ -34,82 +35,97 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "castor"
-	app.Version = "0.0.4"
+	app.Version = "0.0.5"
 	app.Author = "Christian Gill (gillchristiang@gmail.com)"
 	app.Usage = "Review PRs in the terminal"
 	app.UsageText = strings.Join([]string{
 		"$ castor prs",
 		"$ castor review 14",
 		"$ castor back",
-		"$ castor token [token]",
+		"$ castor config --token [token] --user [user]",
 	}, "\n   ")
 
 	app.Commands = commands
-	app.Flags = flags
 
 	app.Run(os.Args)
 }
 
 var commands = []cli.Command{
 	{
-		Name:      "prs",
-		Usage:     "List PRs",
-		UsageText: "$ castor prs",
-		Action:    prs,
-		Flags:     prsFlags,
+		Name:  "prs",
+		Usage: "List PRs",
+		UsageText: strings.Join([]string{
+			"$ castor prs --user other-user",
+			"$ castor prs --closed --open=false",
+			"$ castor prs --everyone",
+			"$ castor prs --all",
+		}, "\n   "),
+		Action: func(ctx *cli.Context) error { return castor.List(loadConf(ctx)) },
+		Flags:  prsFlags,
 	},
 	{
 		Name:      "review",
 		Usage:     "Checkout to a PR's branch to review it",
-		UsageText: "$ castor review 14",
+		UsageText: "$ castor review 42",
 		Action:    reviewAction,
+		Flags:     commonFlags,
 	},
 	{
 		Name:      "back",
 		Usage:     "Checkout to were you left off",
 		UsageText: "$ castor back",
 		Flags:     backFlags,
-		Action:    func(c *cli.Context) error { return castor.GoBack(c.String("branch")) },
+		Action:    func(ctx *cli.Context) error { return castor.GoBack(ctx.String("branch")) },
 	},
 	{
-		Name:  "token",
-		Usage: "Save the GitHub API token to use with other commands",
+		Name:  "config",
+		Usage: "Save configuration to use with the other commands",
 		UsageText: strings.Join([]string{
-			"$ castor token [token]",
-			"$ castor --token [token] token",
+			"$ castor config --token [token]",
+			"$ castor config --user [github username]",
+			"$ castor config --token [token] --user [github username]",
 		}, "\n   "),
 
-		Action: tokenAction,
+		Action: configAction,
+		Flags:  commonFlags,
 	},
 }
 
-var flags = []cli.Flag{
-	cli.StringFlag{
-		Name:        "token",
-		Usage:       "GitHub API Token for accessing private repos",
-		Destination: &token,
-	},
+var tokenFlag = cli.StringFlag{
+	Name:  "token",
+	Usage: "GitHub API Token (repo and org:read permissions)",
+}
+var userFlag = cli.StringFlag{
+	Name:  "user",
+	Usage: "GitHub username",
 }
 
-var prsFlags = []cli.Flag{
-	cli.BoolFlag{
-		Name:  "all",
-		Usage: "All the projects I contribute to",
-	},
-	cli.BoolFlag{
-		Name:  "everyone",
-		Usage: "Include everyone's PRs, not only mine",
-	},
-	cli.BoolFlag{
-		Name:  "closed",
-		Usage: "Include closed PRs",
-	},
-	// cli.BoolTFlag defaults to true
-	cli.BoolTFlag{
-		Name:  "open",
-		Usage: "Include open PRs (defaults to true)",
-	},
+var commonFlags = []cli.Flag{
+	userFlag,
+	tokenFlag,
 }
+
+var prsFlags = append(
+	commonFlags,
+	[]cli.Flag{
+		cli.BoolFlag{
+			Name:  "all",
+			Usage: "All the projects I contribute to",
+		},
+		cli.BoolFlag{
+			Name:  "everyone",
+			Usage: "Include everyone's PRs, not only mine",
+		},
+		cli.BoolFlag{
+			Name:  "closed",
+			Usage: "Include closed PRs",
+		},
+		// cli.BoolTFlag defaults to true
+		cli.BoolTFlag{
+			Name:  "open",
+			Usage: "Include open PRs (defaults to true)",
+		},
+	}...)
 
 var backFlags = []cli.Flag{
 	cli.StringFlag{
@@ -118,58 +134,74 @@ var backFlags = []cli.Flag{
 	},
 }
 
-func prs(c *cli.Context) error {
-	return castor.List(
-		castor.PRsConfig{
-			All:      c.Bool("all"),
-			Everyone: c.Bool("everyone"),
-			Closed:   c.Bool("closed"),
-			Open:     c.Bool("open"),
-		},
-		loadConf().Token,
-	)
-}
+func reviewAction(ctx *cli.Context) error {
+	args := ctx.Args()
 
-func reviewAction(c *cli.Context) error {
-	args := c.Args()
-
+	// TODO: prompt to input number (maybe list PRs?)
 	if !args.Present() {
 		return castor.ExitErrorF(1, "Missing PR number")
 	}
 
-	return castor.ReviewPR(c.Args().First(), loadConf().Token)
+	return castor.ReviewPR(ctx.Args().First(), loadConf(ctx))
 }
 
-func tokenAction(c *cli.Context) error {
-	if token != "" {
-		return saveConf(Conf{Token: token})
+func configAction(cxt *cli.Context) error {
+	b, err := ioutil.ReadFile(castorfile)
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
-	args := c.Args()
-	if !args.Present() {
-		return castor.ExitErrorF(1, "No token provided")
+	conf := GlobalConf{}
+	if len(b) > 0 {
+		err = json.Unmarshal(b, &conf)
+		if err != nil {
+			return err
+		}
 	}
 
-	return saveConf(Conf{Token: args.First()})
+	lookUpFlags(&conf, cxt)
+
+	b, err = json.Marshal(conf)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(castorfile, b, os.ModePerm)
 }
 
-// TODO: create go-micro source for urfave/cli flags
-func loadConf() Conf {
-	if token != "" {
-		return Conf{Token: token}
-	}
-
+// TODO: replace with spf13/viper
+func loadConf(ctx *cli.Context) castor.Conf {
 	c := config.NewConfig()
 	err := c.Load(file.NewSource(file.WithPath(castorfile)))
 	if err != nil {
-		return Conf{}
+		return castor.Conf{}
 	}
 
-	return Conf{Token: c.Get("token").String("token")}
+	conf := GlobalConf{
+		Token: c.Get("token").String(""),
+		User:  c.Get("user").String(""),
+	}
+	lookUpFlags(&conf, ctx)
+
+	if conf.User == "" {
+		conf.User = castor.GitUser()
+	}
+
+	return castor.Conf{
+		All:      ctx.Bool("all"),
+		Everyone: ctx.Bool("everyone"),
+		Closed:   ctx.Bool("closed"),
+		Open:     ctx.Bool("open"),
+		Token:    conf.Token,
+		User:     conf.User,
+	}
 }
 
-func saveConf(conf Conf) error {
-	content := []byte(`{"token": "` + conf.Token + `"}`)
-
-	return ioutil.WriteFile(castorfile, content, os.ModeAppend)
+func lookUpFlags(conf *GlobalConf, ctx *cli.Context) {
+	if ctx.String("token") != "" {
+		conf.Token = ctx.String("token")
+	}
+	if ctx.String("user") != "" {
+		conf.User = ctx.String("user")
+	}
 }

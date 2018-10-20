@@ -11,36 +11,33 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
-// PRsConfig holds the configuration for listing PRs.
-type PRsConfig struct {
+// Conf holds the configuration for listing PRs.
+type Conf struct {
 	All, Everyone, Closed, Open bool
+	Token, User                 string
 }
 
-// List lists all the PRs
-func List(conf PRsConfig, token string) error {
-	user, err := gitUser()
-	if err != nil {
-		return ExitErr(1, err)
-	}
-	prs, err := fetchPRs(conf, user, token)
+// List lists PRs
+func List(conf Conf) error {
+	prs, err := fetchPRs(conf)
 	if err != nil {
 		return ExitErr(1, err)
 	}
 
-	printPRsList(conf, prs.IssueCount, prs.Nodes)
+	printPRsList(prs.IssueCount, prs.Nodes, conf)
 
 	return nil
 }
 
 // ReviewPR checksout the branch of a PR to review it, saving the status of the current
 // branch to allow coming back to it later and continue with the work in progress.
-func ReviewPR(n string, token string) error {
+func ReviewPR(n string, conf Conf) error {
 	prNum, err := strconv.Atoi(n)
 	if err != nil {
 		return ExitErrorF(1, "'%s' is not a number", n)
 	}
 
-	branch, err := getPRHeadName(prNum, token)
+	branch, err := getPRHeadName(prNum, conf)
 	if err != nil {
 		return ExitErr(1, err)
 	}
@@ -65,7 +62,7 @@ func GoBack(branch string) error {
 }
 
 // TODO: don't print status if all open (`--closed` could be merged/closed)
-func printPRsList(conf PRsConfig, count int, prs []SearchPR) {
+func printPRsList(count int, prs []SearchPR, conf Conf) {
 	if count == 0 {
 		return
 	}
