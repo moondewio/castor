@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -156,7 +155,6 @@ func configAction(cxt *cli.Context) error {
 	if len(b) > 0 {
 		err = json.Unmarshal(b, &conf)
 		if err != nil {
-			fmt.Println(err.Error())
 			return err
 		}
 	}
@@ -165,7 +163,6 @@ func configAction(cxt *cli.Context) error {
 
 	b, err = json.Marshal(conf)
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
@@ -181,12 +178,14 @@ func loadConf(ctx *cli.Context) castor.Conf {
 	}
 
 	conf := GlobalConf{
-		Token: c.Get("token").String("token"),
-		User:  c.Get("user").String("user"),
+		Token: c.Get("token").String(""),
+		User:  c.Get("user").String(""),
 	}
-	fmt.Println(conf)
 	lookUpFlags(&conf, ctx)
-	fmt.Println(conf)
+
+	if conf.User == "" {
+		conf.User = castor.GitUser()
+	}
 
 	return castor.Conf{
 		All:      ctx.Bool("all"),

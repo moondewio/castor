@@ -201,3 +201,13 @@ func isClean() bool {
 
 	return strings.Index(out, "nothing to commit") != -1
 }
+
+func gitUser() (string, error) {
+	return output("git", "config", "--global", "user.name")
+}
+
+// GitUser returns `git config --global user.name` or empty string
+func GitUser() string {
+	user, _ := gitUser()
+	return user
+}
