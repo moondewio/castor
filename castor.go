@@ -17,7 +17,7 @@ type Conf struct {
 	Token, User                 string
 }
 
-// List lists all the PRs
+// List lists PRs
 func List(conf Conf) error {
 	prs, err := fetchPRs(conf)
 	if err != nil {
