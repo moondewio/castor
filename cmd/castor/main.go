@@ -53,16 +53,21 @@ func main() {
 
 var commands = []cli.Command{
 	{
-		Name:      "prs",
-		Usage:     "List PRs",
-		UsageText: "$ castor prs",
-		Action:    func(ctx *cli.Context) error { return castor.List(loadConf(ctx)) },
-		Flags:     prsFlags,
+		Name:  "prs",
+		Usage: "List PRs",
+		UsageText: strings.Join([]string{
+			"$ castor prs --user other-user",
+			"$ castor prs --closed --open=false",
+			"$ castor prs --everyone",
+			"$ castor prs --all",
+		}, "\n   "),
+		Action: func(ctx *cli.Context) error { return castor.List(loadConf(ctx)) },
+		Flags:  prsFlags,
 	},
 	{
 		Name:      "review",
 		Usage:     "Checkout to a PR's branch to review it",
-		UsageText: "$ castor review 14",
+		UsageText: "$ castor review 42",
 		Action:    reviewAction,
 		Flags:     commonFlags,
 	},
