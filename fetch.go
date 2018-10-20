@@ -7,7 +7,7 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func fetchPRs(conf PRsConfig, user, token string) (PRsSearch, error) {
+func fetchPRs(conf Conf) (PRsSearch, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
 		return PRsSearch{}, err
@@ -26,10 +26,10 @@ func fetchPRs(conf PRsConfig, user, token string) (PRsSearch, error) {
 	}
 	if !conf.Everyone {
 		// TODO: involves vs author
-		search = append(search, "involves:"+user)
+		search = append(search, "involves:"+conf.User)
 	}
 
-	return searchPRs(token, strings.Join(search, " "))
+	return searchPRs(conf.Token, strings.Join(search, " "))
 }
 
 var client = graphql.NewClient("https://api.github.com/graphql")
@@ -44,7 +44,7 @@ query repoBranchName($owner: String!, $name:String!, $pr:Int!) {
 }
 `
 
-func getPRHeadName(id int, token string) (string, error) {
+func getPRHeadName(id int, conf Conf) (string, error) {
 	owner, repo, err := ownerAndRepo()
 	if err != nil {
 		return "", err
@@ -55,8 +55,8 @@ func getPRHeadName(id int, token string) (string, error) {
 	req.Var("name", repo)
 	req.Var("pr", id)
 
-	if token != "" {
-		req.Header.Set("Authorization", "token "+token)
+	if conf.Token != "" {
+		req.Header.Set("Authorization", "token "+conf.Token)
 	}
 
 	var res map[string]map[string]map[string]string

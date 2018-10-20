@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -14,12 +16,12 @@ import (
 	"github.com/urfave/cli"
 )
 
-var token string
 var castorfile string
 
-// Conf contains the app configuration
-type Conf struct {
-	Token string `json:"token"`
+// GlobalConf contains the app configuration
+type GlobalConf struct {
+	Token string `json:"token,omitempty"`
+	User  string `json:"user,omitempty"`
 }
 
 func init() {
@@ -41,11 +43,10 @@ func main() {
 		"$ castor prs",
 		"$ castor review 14",
 		"$ castor back",
-		"$ castor token [token]",
+		"$ castor config --token [token] --user [user]",
 	}, "\n   ")
 
 	app.Commands = commands
-	app.Flags = flags
 
 	app.Run(os.Args)
 }
@@ -55,7 +56,7 @@ var commands = []cli.Command{
 		Name:      "prs",
 		Usage:     "List PRs",
 		UsageText: "$ castor prs",
-		Action:    prs,
+		Action:    func(c *cli.Context) error { return castor.List(loadConf(c)) },
 		Flags:     prsFlags,
 	},
 	{
@@ -72,22 +73,27 @@ var commands = []cli.Command{
 		Action:    func(c *cli.Context) error { return castor.GoBack(c.String("branch")) },
 	},
 	{
-		Name:  "token",
-		Usage: "Save the GitHub API token to use with other commands",
+		Name:  "config",
+		Usage: "Save configuration to use with the other commands",
 		UsageText: strings.Join([]string{
-			"$ castor token [token]",
-			"$ castor --token [token] token",
+			"$ castor config --token [token]",
+			"$ castor config --user [github username]",
+			"$ castor config --token [token] --user [github username]",
 		}, "\n   "),
 
-		Action: tokenAction,
+		Action: configAction,
+		Flags:  configFlags,
 	},
 }
 
-var flags = []cli.Flag{
+var configFlags = []cli.Flag{
 	cli.StringFlag{
-		Name:        "token",
-		Usage:       "GitHub API Token for accessing private repos",
-		Destination: &token,
+		Name:  "token",
+		Usage: "GitHub API Token (repo and org:read permissions)",
+	},
+	cli.StringFlag{
+		Name:  "user",
+		Usage: "GitHub username",
 	},
 }
 
@@ -118,58 +124,67 @@ var backFlags = []cli.Flag{
 	},
 }
 
-func prs(c *cli.Context) error {
-	return castor.List(
-		castor.PRsConfig{
-			All:      c.Bool("all"),
-			Everyone: c.Bool("everyone"),
-			Closed:   c.Bool("closed"),
-			Open:     c.Bool("open"),
-		},
-		loadConf().Token,
-	)
-}
-
 func reviewAction(c *cli.Context) error {
 	args := c.Args()
 
+	// TODO: prompt to input number (maybe list PRs?)
 	if !args.Present() {
 		return castor.ExitErrorF(1, "Missing PR number")
 	}
 
-	return castor.ReviewPR(c.Args().First(), loadConf().Token)
+	return castor.ReviewPR(c.Args().First(), loadConf(c))
 }
 
-func tokenAction(c *cli.Context) error {
-	if token != "" {
-		return saveConf(Conf{Token: token})
+func lookUpFlags(conf *map[string]string, c *cli.Context, flags ...string) {
+	for _, flag := range flags {
+		if c.String(flag) != "" {
+			(*conf)[flag] = c.String(flag)
+		}
 	}
-
-	args := c.Args()
-	if !args.Present() {
-		return castor.ExitErrorF(1, "No token provided")
-	}
-
-	return saveConf(Conf{Token: args.First()})
 }
 
-// TODO: create go-micro source for urfave/cli flags
-func loadConf() Conf {
-	if token != "" {
-		return Conf{Token: token}
+// TODO: don't override
+func configAction(c *cli.Context) error {
+	b, err := ioutil.ReadFile(castorfile)
+	if err != nil && !os.IsNotExist(err) {
+		return err
 	}
 
-	c := config.NewConfig()
-	err := c.Load(file.NewSource(file.WithPath(castorfile)))
+	conf := make(map[string]string)
+	if len(b) > 0 {
+		err = json.Unmarshal(b, &conf)
+		if err != nil {
+			fmt.Println(err.Error())
+			return err
+		}
+	}
+
+	lookUpFlags(&conf, c, "token", "user")
+
+	b, err = json.Marshal(conf)
 	if err != nil {
-		return Conf{}
+		fmt.Println(err.Error())
+		return err
 	}
 
-	return Conf{Token: c.Get("token").String("token")}
+	return ioutil.WriteFile(castorfile, b, os.ModePerm)
 }
 
-func saveConf(conf Conf) error {
-	content := []byte(`{"token": "` + conf.Token + `"}`)
+// TODO: replace with spf13/viper
+// TODO: supports loading from flags (not only file)
+func loadConf(c *cli.Context) castor.Conf {
+	conf := config.NewConfig()
+	err := conf.Load(file.NewSource(file.WithPath(castorfile)))
+	if err != nil {
+		return castor.Conf{}
+	}
 
-	return ioutil.WriteFile(castorfile, content, os.ModeAppend)
+	return castor.Conf{
+		All:      c.Bool("all"),
+		Everyone: c.Bool("everyone"),
+		Closed:   c.Bool("closed"),
+		Open:     c.Bool("open"),
+		Token:    conf.Get("token").String("token"),
+		User:     conf.Get("user").String("user"),
+	}
 }

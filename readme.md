@@ -51,10 +51,10 @@ GLOBAL OPTIONS:
 - [x] Handle `git` errors: show command and output
 - [ ] Handle `git` errors: better output
 - [ ] Handle `git` errors: use command exit code
-- [ ] `back`: support multiple branches
+- [x] `back`: support multiple branches
 - [ ] `prs`: improve output
-- [ ] `prs`: show all my PRs (in different repos)
-- [ ] `review`: don't stash if there are no changes
+- [x] `prs`: show all my PRs (in different repos)
+- [x] `review`: don't stash if there are no changes
 - [ ] `review`: list changed files (with stats)
 - [ ] Add tests
 - [ ] Support different remotes than `origin`

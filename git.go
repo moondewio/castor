@@ -196,10 +196,6 @@ func stashWIP(branch string) (stashEntry, bool) {
 	return stashEntry{}, false
 }
 
-func gitUser() (string, error) {
-	return output("git", "config", "--global", "user.name")
-}
-
 func isClean() bool {
 	out, _ := output("git", "status")
 
