@@ -17,7 +17,7 @@ $ go get -u github.com/moondewio/castor/cmd/castor
 ## Use
 
 ```
-$ castor         
+$ castor
 NAME:
    castor - Review PRs in the terminal
 
@@ -28,7 +28,7 @@ USAGE:
    $ castor config --token [token] --user [user]
 
 VERSION:
-   1.0.0
+   0.0.5
 
 AUTHOR:
    Christian Gill (gillchristiang@gmail.com)
