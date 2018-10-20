@@ -3,6 +3,7 @@ package castor
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/whilp/git-urls"
@@ -132,13 +133,15 @@ func ownerAndRepo() (string, string, error) {
 	return ownerAndRepoFromRemote(rawurl)
 }
 
+var re = regexp.MustCompile(`[a-zA-Z-]+/[a-zA-Z-]+`)
+
 func ownerAndRepoFromRemote(remote string) (string, string, error) {
 	url, err := giturls.Parse(remote)
 	if err != nil {
 		return "", "", err
 	}
 
-	parts := strings.Split(strings.Replace(url.Path, ".git", "", 1), "/")
+	parts := strings.Split(re.FindString(url.Path), "/")
 
 	// TODO: handle len != 2 case (could be many things)
 	if len(parts) != 2 {
