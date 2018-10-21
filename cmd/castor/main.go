@@ -29,7 +29,7 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "castor"
-	app.Version = "0.0.6"
+	app.Version = "0.0.7"
 	app.Author = "Christian Gill (gillchristiang@gmail.com)"
 	app.Usage = "Review PRs in the terminal"
 	app.UsageText = strings.Join([]string{
@@ -64,7 +64,7 @@ var commands = []cli.Command{
 		UsageText: "$ castor review 42",
 		Aliases:   []string{"r"},
 		Action:    reviewAction,
-		Flags:     commonFlags,
+		Flags:     reviewFlags,
 	},
 	{
 		Name:      "back",
@@ -109,25 +109,24 @@ var commonFlags = []cli.Flag{
 
 var prsFlags = append(
 	commonFlags,
-	[]cli.Flag{
-		cli.BoolFlag{
-			Name:  "all",
-			Usage: "All the projects I contribute to",
-		},
-		cli.BoolFlag{
-			Name:  "everyone",
-			Usage: "Include everyone's PRs, not only mine",
-		},
-		cli.BoolFlag{
-			Name:  "closed",
-			Usage: "Include closed PRs",
-		},
-		// cli.BoolTFlag defaults to true
-		cli.BoolTFlag{
-			Name:  "open",
-			Usage: "Include open PRs (defaults to true)",
-		},
-	}...)
+	cli.BoolFlag{
+		Name:  "all",
+		Usage: "All the projects I contribute to",
+	},
+	cli.BoolFlag{
+		Name:  "everyone",
+		Usage: "Include everyone's PRs, not only mine",
+	},
+	cli.BoolFlag{
+		Name:  "closed",
+		Usage: "Include closed PRs",
+	},
+	// cli.BoolTFlag defaults to true
+	cli.BoolTFlag{
+		Name:  "open",
+		Usage: "Include open PRs (defaults to true)",
+	},
+)
 
 var backFlags = []cli.Flag{
 	cli.StringFlag{
@@ -135,6 +134,14 @@ var backFlags = []cli.Flag{
 		Usage: "Branch to go back to",
 	},
 }
+
+var reviewFlags = append(
+	commonFlags,
+	cli.BoolFlag{
+		Name:  "no-stat",
+		Usage: "Don't show diff stats after changing branch",
+	},
+)
 
 func reviewAction(ctx *cli.Context) error {
 	args := ctx.Args()
@@ -204,6 +211,7 @@ func lookUpFlags(conf *castor.Conf, ctx *cli.Context) {
 	conf.Everyone = ctx.Bool("everyone")
 	conf.Closed = ctx.Bool("closed")
 	conf.Open = ctx.Bool("open")
+	conf.ShowStats = !ctx.Bool("no-stat")
 }
 
 func flagsFallbacks(conf *castor.Conf) {
