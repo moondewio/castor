@@ -28,7 +28,7 @@ USAGE:
    $ castor config --token [token] --user [user]
 
 VERSION:
-   0.0.6
+   0.0.7
 
 AUTHOR:
    Christian Gill (gillchristiang@gmail.com)
