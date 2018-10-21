@@ -8,7 +8,7 @@ import (
 )
 
 func fetchPRs(conf Conf) (PRsSearch, error) {
-	owner, repo, err := ownerAndRepo()
+	owner, repo, err := ownerAndRepo(conf.Remote)
 	if err != nil {
 		return PRsSearch{}, err
 	}
@@ -45,7 +45,7 @@ query repoBranchName($owner: String!, $name:String!, $pr:Int!) {
 `
 
 func getPRHeadName(id int, conf Conf) (string, error) {
-	owner, repo, err := ownerAndRepo()
+	owner, repo, err := ownerAndRepo(conf.Remote)
 	if err != nil {
 		return "", err
 	}
