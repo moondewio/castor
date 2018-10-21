@@ -29,7 +29,7 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "castor"
-	app.Version = "0.0.7"
+	app.Version = "0.0.8"
 	app.Author = "Christian Gill (gillchristiang@gmail.com)"
 	app.Usage = "Review PRs in the terminal"
 	app.UsageText = strings.Join([]string{
@@ -49,6 +49,8 @@ var commands = []cli.Command{
 		Name:  "prs",
 		Usage: "List PRs",
 		UsageText: strings.Join([]string{
+			"This command requires a GitHub API Token to work.",
+			"Check `castor help config` for more information.\n",
 			"$ castor prs --user other-user",
 			"$ castor prs --closed --open=false",
 			"$ castor prs --everyone",
@@ -59,25 +61,47 @@ var commands = []cli.Command{
 		Flags:   prsFlags,
 	},
 	{
-		Name:      "review",
-		Usage:     "Checkout to a PR's branch to review it",
-		UsageText: "$ castor review 42",
-		Aliases:   []string{"r"},
-		Action:    reviewAction,
-		Flags:     reviewFlags,
+		Name:  "review",
+		Usage: "Checkout to a PR's branch to review it",
+		UsageText: strings.Join([]string{
+			"No need to save changes (i.e. stash or commit), castor takes care of that.\n",
+			"IMPORTANT: castor uses `git stash` to save the Work In Progress, if you run",
+			"`git stash drop` on it castor will not be able to go back to the branch",
+			"and, most importatly, your Work In Progress will be lost.\n",
+			"This command requires a GitHub API Token to work.",
+			"Check `castor help config` for more information.\n",
+			"$ castor review 42",
+			"$ castor review 42 --no-stat",
+		}, "\n   "),
+		Aliases: []string{"r"},
+		Action:  reviewAction,
+		Flags:   reviewFlags,
 	},
 	{
-		Name:      "back",
-		Usage:     "Checkout to were you left off",
-		UsageText: "$ castor back",
-		Aliases:   []string{"b"},
-		Flags:     backFlags,
-		Action:    func(ctx *cli.Context) error { return castor.GoBack(ctx.String("branch")) },
+		Name:  "back",
+		Usage: "Go back to were you left off",
+		UsageText: strings.Join([]string{
+			"Goes back to the branch last brach `castor review x` was called from.",
+			"Use `--branch [branch]` to go back to a particular branch.",
+			"castor will recover the Work In Progress of the branch.\n",
+			"$ castor back",
+			"$ castor back --branch my-wip-branch",
+		}, "\n   "),
+		Aliases: []string{"b"},
+		Flags:   backFlags,
+		Action:  func(ctx *cli.Context) error { return castor.GoBack(ctx.String("branch")) },
 	},
 	{
 		Name:  "config",
 		Usage: "Save configuration to use with the other commands",
 		UsageText: strings.Join([]string{
+			"castor uses GitHub's APIv4, it requires a token, read more here:",
+			"https://developer.github.com/v4/guides/forming-calls/#authenticating-with-graphql\n",
+			"To search for private PRs and list users and teams involved in reviews",
+			"castor requires 'repo' and 'org:read' permissions.",
+			"If your PRs do not have team reviewers the 'org:read' permission can be skipped.",
+			"If you are only searching public repos you and skip both permissions.",
+			"Don't worry, the only thing castor does is search for PRs.\n",
 			"$ castor config --token [token]",
 			"$ castor config --user [github username]",
 			"$ castor config --token [token] --user [github username]",
@@ -90,25 +114,26 @@ var commands = []cli.Command{
 
 var tokenFlag = cli.StringFlag{
 	Name:  "token",
-	Usage: "GitHub API Token (repo and org:read permissions)",
+	Usage: "GitHub API Token",
 }
 var userFlag = cli.StringFlag{
 	Name:  "user",
-	Usage: "GitHub username",
+	Usage: `GitHub username (default: "git config --global user.name")`,
 }
 var remoteFlag = cli.StringFlag{
 	Name:  "remote",
-	Usage: "Repo remote (defaults to `git remote`)",
+	Value: "origin",
+	Usage: "Repo remote",
 }
 
 var commonFlags = []cli.Flag{
 	userFlag,
 	tokenFlag,
-	remoteFlag,
 }
 
 var prsFlags = append(
 	commonFlags,
+	remoteFlag,
 	cli.BoolFlag{
 		Name:  "all",
 		Usage: "All the projects I contribute to",
@@ -128,20 +153,21 @@ var prsFlags = append(
 	},
 )
 
+var reviewFlags = append(
+	commonFlags,
+	remoteFlag,
+	cli.BoolFlag{
+		Name:  "no-stat",
+		Usage: "Don't show diff stats after changing branch",
+	},
+)
+
 var backFlags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "branch",
 		Usage: "Branch to go back to",
 	},
 }
-
-var reviewFlags = append(
-	commonFlags,
-	cli.BoolFlag{
-		Name:  "no-stat",
-		Usage: "Don't show diff stats after changing branch",
-	},
-)
 
 func reviewAction(ctx *cli.Context) error {
 	args := ctx.Args()
@@ -203,9 +229,8 @@ func lookUpFlags(conf *castor.Conf, ctx *cli.Context) {
 	if ctx.String("user") != "" {
 		conf.User = ctx.String("user")
 	}
-	if ctx.String("remote") != "" {
-		conf.Remote = ctx.String("remote")
-	}
+
+	conf.Remote = ctx.String("remote")
 
 	conf.All = ctx.Bool("all")
 	conf.Everyone = ctx.Bool("everyone")
@@ -217,8 +242,5 @@ func lookUpFlags(conf *castor.Conf, ctx *cli.Context) {
 func flagsFallbacks(conf *castor.Conf) {
 	if conf.User == "" {
 		conf.User = castor.GitUser()
-	}
-	if conf.Remote == "" {
-		conf.Remote = castor.GitRemote()
 	}
 }
