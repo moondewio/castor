@@ -39,15 +39,16 @@ query repoBranchName($owner: String!, $name:String!, $pr:Int!) {
   repository(owner: $owner, name: $name) {
     pullRequest(number:$pr) {
       headRefName
+	  baseRefName
     }
   }
 }
 `
 
-func getPRHeadName(id int, conf Conf) (string, error) {
+func getPRRefs(id int, conf Conf) (string, string, error) {
 	owner, repo, err := ownerAndRepo(conf.Remote)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	req := graphql.NewRequest(prBranchNameQuery)
@@ -64,10 +65,13 @@ func getPRHeadName(id int, conf Conf) (string, error) {
 	ctx := context.Background()
 
 	if err := client.Run(ctx, req, &res); err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return res["repository"]["pullRequest"]["headRefName"], nil
+	base := res["repository"]["pullRequest"]["baseRefName"]
+	head := res["repository"]["pullRequest"]["headRefName"]
+
+	return base, head, nil
 }
 
 var prNodes = `

@@ -8,13 +8,15 @@ import (
 	"github.com/fatih/color"
 )
 
+var yellow = color.New(color.FgYellow)
+
 func runWithPipe(command string, args ...string) error {
 	cmd := exec.Command(command, args...)
 
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
 
-	color.New(color.FgYellow).Printf("$ %s %s\n\n", command, strings.Join(args, " "))
+	yellow.Printf("$ %s %s\n\n", command, strings.Join(args, " "))
 
 	return cmd.Run()
 }

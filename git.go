@@ -28,7 +28,7 @@ func checkoutBranch(branch string) error {
 	return nil
 }
 
-func switchToBranch(branch, remote string) error {
+func switchToBranch(base, head string, conf Conf) error {
 	if !isRepo() {
 		return fmt.Errorf("Not a git repository")
 	}
@@ -48,8 +48,8 @@ func switchToBranch(branch, remote string) error {
 		return err
 	}
 
-	if err := checkoutBranch(branch); err != nil {
-		fmt.Printf("\nFailed to checkout to branch `%s`, applying Work In Progress back\n\n", branch)
+	if err := checkoutBranch(head); err != nil {
+		fmt.Printf("\nFailed to checkout to branch `%s`, applying Work In Progress back\n\n", head)
 		if err := runWithPipe("git", "stash", "pop"); err != nil {
 			fmt.Printf("\nFailed to apply changes...\n\n")
 			return err
@@ -57,10 +57,18 @@ func switchToBranch(branch, remote string) error {
 		return err
 	}
 
-	if err := runWithPipe("git", "pull", remote, branch); err != nil {
-		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", branch)
+	if err := runWithPipe("git", "pull", conf.Remote, head); err != nil {
+		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", head)
 	} else {
-		fmt.Printf("\nSwitched to branch `%s`\n", branch)
+		fmt.Printf("\nSwitched to branch `%s`\n", head)
+	}
+
+	if conf.ShowStats {
+		diff, err := statDiff(base, head)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("\nHere's what changed between %s and %s:\n\n %s\n", base, head, diff)
 	}
 
 	return nil
@@ -200,6 +208,10 @@ func isClean() bool {
 	out, _ := output("git", "status")
 
 	return strings.Index(out, "nothing to commit") != -1
+}
+
+func statDiff(base, head string) (string, error) {
+	return output("git", "diff", "--stat", "--color", base+".."+head)
 }
 
 func gitUser() (string, error) {
