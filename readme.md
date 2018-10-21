@@ -2,8 +2,6 @@
 
 <p align="center">Review GitHub PRs and go back where you left of</p>
 
-> **This is still WIP** :tm:
->
 > **All feedback is welcome**
 
 [![castor-v1.0.0](https://asciinema.org/a/205135.png)](https://asciinema.org/a/205135)
