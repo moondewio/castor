@@ -28,7 +28,7 @@ func checkoutBranch(branch string) error {
 	return nil
 }
 
-func switchToBranch(branch string) error {
+func switchToBranch(branch, remote string) error {
 	if !isRepo() {
 		return fmt.Errorf("Not a git repository")
 	}
@@ -57,7 +57,7 @@ func switchToBranch(branch string) error {
 		return err
 	}
 
-	if err := runWithPipe("git", "pull", "origin", branch); err != nil {
+	if err := runWithPipe("git", "pull", remote, branch); err != nil {
 		fmt.Printf("\nSwitched to `%s` but failed to pull latest changes...\n", branch)
 	} else {
 		fmt.Printf("\nSwitched to branch `%s`\n", branch)
@@ -124,8 +124,8 @@ func isRepo() bool {
 	return run("git", "rev-parse") == nil
 }
 
-func ownerAndRepo() (string, string, error) {
-	rawurl, err := remoteURL()
+func ownerAndRepo(remote string) (string, string, error) {
+	rawurl, err := remoteURL(remote)
 	if err != nil {
 		return "", "", err
 	}
@@ -151,8 +151,8 @@ func ownerAndRepoFromRemote(remote string) (string, string, error) {
 	return parts[0], parts[1], nil
 }
 
-func remoteURL() (string, error) {
-	return output("git", "remote", "get-url", "origin")
+func remoteURL(remote string) (string, error) {
+	return output("git", "remote", "get-url", remote)
 }
 
 func lastCommit() (string, error) {
@@ -209,5 +209,15 @@ func gitUser() (string, error) {
 // GitUser returns `git config --global user.name` or empty string
 func GitUser() string {
 	user, _ := gitUser()
+	return user
+}
+
+func gitRemote() (string, error) {
+	return output("git", "remote")
+}
+
+// GitRemote returns `git remote` or empty string
+func GitRemote() string {
+	user, _ := gitRemote()
 	return user
 }

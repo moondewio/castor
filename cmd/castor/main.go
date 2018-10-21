@@ -17,12 +17,6 @@ import (
 
 var castorfile string
 
-// GlobalConf contains the app configuration
-type GlobalConf struct {
-	Token string `json:"token,omitempty"`
-	User  string `json:"user,omitempty"`
-}
-
 func init() {
 	cur, err := user.Current()
 	if err != nil {
@@ -102,10 +96,15 @@ var userFlag = cli.StringFlag{
 	Name:  "user",
 	Usage: "GitHub username",
 }
+var remoteFlag = cli.StringFlag{
+	Name:  "remote",
+	Usage: "Repo remote (defaults to `git remote`)",
+}
 
 var commonFlags = []cli.Flag{
 	userFlag,
 	tokenFlag,
+	remoteFlag,
 }
 
 var prsFlags = append(
@@ -154,7 +153,7 @@ func configAction(cxt *cli.Context) error {
 		return err
 	}
 
-	conf := GlobalConf{}
+	conf := castor.Conf{}
 	if len(b) > 0 {
 		err = json.Unmarshal(b, &conf)
 		if err != nil {
@@ -180,31 +179,38 @@ func loadConf(ctx *cli.Context) castor.Conf {
 		return castor.Conf{}
 	}
 
-	conf := GlobalConf{
+	conf := castor.Conf{
 		Token: c.Get("token").String(""),
 		User:  c.Get("user").String(""),
 	}
 	lookUpFlags(&conf, ctx)
+	flagsFallbacks(&conf)
 
-	if conf.User == "" {
-		conf.User = castor.GitUser()
-	}
-
-	return castor.Conf{
-		All:      ctx.Bool("all"),
-		Everyone: ctx.Bool("everyone"),
-		Closed:   ctx.Bool("closed"),
-		Open:     ctx.Bool("open"),
-		Token:    conf.Token,
-		User:     conf.User,
-	}
+	return conf
 }
 
-func lookUpFlags(conf *GlobalConf, ctx *cli.Context) {
+func lookUpFlags(conf *castor.Conf, ctx *cli.Context) {
 	if ctx.String("token") != "" {
 		conf.Token = ctx.String("token")
 	}
 	if ctx.String("user") != "" {
 		conf.User = ctx.String("user")
+	}
+	if ctx.String("remote") != "" {
+		conf.Remote = ctx.String("remote")
+	}
+
+	conf.All = ctx.Bool("all")
+	conf.Everyone = ctx.Bool("everyone")
+	conf.Closed = ctx.Bool("closed")
+	conf.Open = ctx.Bool("open")
+}
+
+func flagsFallbacks(conf *castor.Conf) {
+	if conf.User == "" {
+		conf.User = castor.GitUser()
+	}
+	if conf.Remote == "" {
+		conf.Remote = castor.GitRemote()
 	}
 }

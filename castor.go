@@ -13,8 +13,13 @@ import (
 
 // Conf holds the configuration for listing PRs.
 type Conf struct {
-	All, Everyone, Closed, Open bool
-	Token, User                 string
+	All      bool   `json:"-"`
+	Everyone bool   `json:"-"`
+	Closed   bool   `json:"-"`
+	Open     bool   `json:"-"`
+	Remote   string `json:"-"`
+	Token    string `json:"token,omitempty"`
+	User     string `json:"user,omitempty"`
 }
 
 // List lists PRs
@@ -42,7 +47,7 @@ func ReviewPR(n string, conf Conf) error {
 		return ExitErr(1, err)
 	}
 
-	err = switchToBranch(branch)
+	err = switchToBranch(branch, conf.Remote)
 	if err != nil {
 		return ExitErr(1, err)
 	}
