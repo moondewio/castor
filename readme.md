@@ -28,17 +28,17 @@ USAGE:
    $ castor config --token [token] --user [user]
 
 VERSION:
-   0.0.5
+   0.0.6
 
 AUTHOR:
    Christian Gill (gillchristiang@gmail.com)
 
 COMMANDS:
-     prs      List PRs
-     review   Checkout to a PR's branch to review it
-     back     Checkout to were you left off
-     config   Save configuration to use with the other commands
-     help, h  Shows a list of commands or help for one command
+     prs, ls    List PRs
+     review, r  Checkout to a PR's branch to review it
+     back, b    Checkout to were you left off
+     config, c  Save configuration to use with the other commands
+     help, h    Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
    --help, -h     show help
