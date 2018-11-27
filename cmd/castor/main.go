@@ -19,9 +19,7 @@ var castorfile string
 
 func init() {
 	cur, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
+	check(err)
 	castorfile = path.Join(cur.HomeDir, ".castor.json")
 }
 
@@ -29,7 +27,7 @@ func main() {
 	app := cli.NewApp()
 
 	app.Name = "castor"
-	app.Version = "0.0.8"
+	app.Version = "0.0.9"
 	app.Author = "Christian Gill (gillchristiang@gmail.com)"
 	app.Usage = "Review PRs in the terminal"
 	app.UsageText = strings.Join([]string{
@@ -206,8 +204,14 @@ func configAction(cxt *cli.Context) error {
 
 // TODO: replace with spf13/viper
 func loadConf(ctx *cli.Context) castor.Conf {
+	// make sure the castorfile is proerly created (i.e. `touch ~/.castor.json`)
+	f, err := os.OpenFile(castorfile, os.O_RDONLY|os.O_CREATE, 0666)
+	check(err)
+	err = f.Close()
+	check(err)
+
 	c := config.NewConfig()
-	err := c.Load(file.NewSource(file.WithPath(castorfile)))
+	err = c.Load(file.NewSource(file.WithPath(castorfile)))
 	if err != nil {
 		return castor.Conf{}
 	}
@@ -242,5 +246,11 @@ func lookUpFlags(conf *castor.Conf, ctx *cli.Context) {
 func flagsFallbacks(conf *castor.Conf) {
 	if conf.User == "" {
 		conf.User = castor.GitUser()
+	}
+}
+
+func check(err error) {
+	if err != nil {
+		log.Fatal(err)
 	}
 }
